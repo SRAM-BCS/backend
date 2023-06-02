@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'backend',
+    'SRAM',
+    
 ]
 
 MIDDLEWARE = [
@@ -75,8 +79,12 @@ WSGI_APPLICATION = 'SRAM.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'sram_v1',
+        'USER': 'sram_v1_user',
+        'PASSWORD': 'o7MSL0Ash0Gdj7pgxa3ul63Rc5BqLKBc',
+        'HOST': 'dpg-chsr8cik728ud3l42bf0-a.oregon-postgres.render.com',
+        'PORT': '5432',
     }
 }
 
