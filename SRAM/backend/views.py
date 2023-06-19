@@ -34,3 +34,4 @@ def student(request):
     serializer = StudentSerializer(students, many=True)
     # return response   
     return Response(serializer.data, status=status.HTTP_200_OK)
+
