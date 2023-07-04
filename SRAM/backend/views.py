@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus
-from .serializers import StudentSerializer
+from .serializers import StudentSerializer, AttendanceSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -143,3 +143,18 @@ def mark_attendance(request):
     attendance.save()
     # return response
     return Response({'message': 'Attendance Marked'}, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+def get_student_attendance(request):
+    request = auth(request, 'STUDENT')
+    # get student by email
+    student = Student.objects.get(email=request.tokenData['email'])
+    # check if exists
+    if not student:
+        return Response({'message': 'Student Not Found'}, status=status.HTTP_404_NOT_FOUND)
+    # get all attendance of student
+    attendance = Attendance.objects.filter(roll=student.roll)
+    # serialize data
+    serializer = AttendanceSerializer(attendance, many=True)
+    # return response
+    return Response(serializer.data, status=status.HTTP_200_OK)
