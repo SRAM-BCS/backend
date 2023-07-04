@@ -17,7 +17,7 @@ class Student(models.Model):
     batch = models.ForeignKey('Batch', on_delete=models.CASCADE, default=None)
     created = models.DateField(auto_now_add=True)
     isActive = models.BooleanField(default=False)
-    salt = bcrypt.gensalt()
+    salt = models.CharField("Salt")
     def __str__(self):
         return self.name
     def setPassword(self, password):
@@ -33,7 +33,7 @@ class Faculty(models.Model):
     code = models.CharField("Code", max_length=240, primary_key=True)
     courses = models.ManyToManyField('Course', through='BatchCourseFaculty')
     isActive = models.BooleanField(default=False)
-    salt = bcrypt.gensalt()
+    salt = models.CharField("Salt")
     def __str__(self):
         return self.name    
     def setPassword(self, password):
