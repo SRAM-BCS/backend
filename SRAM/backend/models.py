@@ -10,12 +10,12 @@ class Student(models.Model):
     name = models.CharField("Name", max_length=240)
     email = models.EmailField()
     roll = models.CharField("RollNumber", max_length=240, primary_key=True)
-    profileImage = CloudinaryField('image') # for recognition
-    idImage = CloudinaryField('image') # for verification
+    profileImage = CloudinaryField('image',null=True) # for recognition
+    idImage = CloudinaryField('image',null=True) # for verification
     requestStatus = models.CharField(max_length=1, choices=OptionEnum.choices, default=OptionEnum.OPTION2)
     batch = models.ForeignKey('Batch', on_delete=models.CASCADE, default=None)
     created = models.DateField(auto_now_add=True)
-    updated = models.DateField(auto_now_add=True)
+    # updated = models.DateField(auto_now_add=True)
 
 # requestAccess -> admin will have student request in their dashboard -> accept or deny
 # when app start up, it will check if the student has already requested access or not. -> if requested access
