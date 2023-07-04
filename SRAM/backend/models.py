@@ -13,7 +13,7 @@ class Student(models.Model):
     profileImage = CloudinaryField('image') # for recognition
     idImage = CloudinaryField('image') # for verification
     requestStatus = models.CharField(max_length=1, choices=OptionEnum.choices, default=OptionEnum.OPTION2)
-    batch = models.ForeignKey('Batch', on_delete=models.CASCADE)
+    batch = models.ForeignKey('Batch', on_delete=models.CASCADE, default=None)
     created = models.DateField(auto_now_add=True)
     updated = models.DateField(auto_now_add=True)
 
@@ -72,13 +72,13 @@ class BatchCourseFaculty(models.Model):
 
 class Attendance(models.Model):
     BCF_id = models.ForeignKey(BatchCourseFaculty, on_delete=models.CASCADE)
-    roll = models.ForeignKey(Student.roll, on_delete=models.CASCADE)
+    roll = models.ForeignKey(Student, on_delete=models.CASCADE)
     date = models.DateField(auto_now_add=True)
     def __str__(self):
         return self.name
     
 class QRCode(models.Model):
-    classRoom = models.ForeignKey('Class', on_delete=models.CASCADE)
+    classRoom = models.CharField("ClassRoom", max_length=240)
     qrCode = models.CharField("QRCode", max_length=240, primary_key=True) #url of the QR
     def __str__(self):
         return self.name
