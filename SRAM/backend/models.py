@@ -1,6 +1,6 @@
 from django.db import models
 from cloudinary.models import CloudinaryField
-
+import bcrypt
 # Create your models here.
 class Student(models.Model):
     class OptionEnum(models.TextChoices):
@@ -17,16 +17,13 @@ class Student(models.Model):
     batch = models.ForeignKey('Batch', on_delete=models.CASCADE, default=None)
     created = models.DateField(auto_now_add=True)
     isActive = models.BooleanField(default=False)
-    # updated = models.DateField(auto_now_add=True)
-
-# requestAccess -> admin will have student request in their dashboard -> accept or deny
-# when app start up, it will check if the student has already requested access or not. -> if requested access
-# but not approved, give prompt under review. Else  go to next step.
-# validateAccess -> it will check if students have access, then it will return the student object along with
-# some extra details, and student dashboard redirect. 
-
+    salt = bcrypt.gensalt()
     def __str__(self):
         return self.name
+    def setPassword(self, password):
+        self.password = bcrypt.hashpw(password.encode('utf8'), self.salt)
+    def checkPassword(self, password):
+        return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))
     
 class Faculty(models.Model):
     name = models.CharField("Name", max_length=240)
@@ -36,9 +33,13 @@ class Faculty(models.Model):
     code = models.CharField("Code", max_length=240, primary_key=True)
     courses = models.ManyToManyField('Course', through='BatchCourseFaculty')
     isActive = models.BooleanField(default=False)
-
+    salt = bcrypt.gensalt()
     def __str__(self):
         return self.name    
+    def setPassword(self, password):
+        self.password = bcrypt.hashpw(password.encode('utf8'), self.salt)
+    def checkPassword(self, password):
+        return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))
 
 class Batch(models.Model):
     title = models.CharField("Title", max_length=240)

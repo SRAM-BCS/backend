@@ -7,7 +7,7 @@ from rest_framework import status
 from django.http import JsonResponse
 from sqlalchemy import create_engine, Text, select
 from backend.schema import LoginRequest
-
+import bcrypt
 # Create your views here.
 @api_view(['POST'])
 def register(request):
@@ -38,7 +38,7 @@ def login(request):
     # get student object
     student = Student.objects.get(email=data.email)
     # check if password is correct
-    
+
 
 
 @api_view(['GET'])
