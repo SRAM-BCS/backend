@@ -10,8 +10,8 @@ from datetime import datetime
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
-from rest_framework_simplejwt.tokens import RefreshToken
-
+import jwt
+from SRAM.settings import env
 # Create your views here.
 @api_view(['POST'])
 def register(request):
@@ -67,9 +67,10 @@ def login(request):
     # use serializer
     serializer = StudentSerializer(student)
     # create jwt token
-    refresh = RefreshToken.for_user(serializer.data)
+    refresh = jwt.encode(dict(serializer.data), env("JWT_SECRET_KEY"), algorithm="HS256")
     # return response
     return Response({'message': 'Login Successful', 'refresh_token': str(refresh)}, status=status.HTTP_200_OK)
+
 
 @api_view(['GET'])
 def student(request):
