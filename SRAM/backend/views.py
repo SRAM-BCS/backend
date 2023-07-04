@@ -6,12 +6,14 @@ from rest_framework.response import Response
 from rest_framework import status
 from backend.schema import LoginRequest
 import bcrypt
-from datetime import datetime
+from datetime import datetime, timedelta
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 import jwt
 from SRAM.settings import env
+from SRAM.constants import AUTHORIZATION_LEVEL
+
 # Create your views here.
 @api_view(['POST'])
 def register(request):
@@ -67,7 +69,15 @@ def login(request):
     # use serializer
     serializer = StudentSerializer(student)
     # create jwt token
-    refresh = jwt.encode(dict(serializer.data), env("JWT_SECRET_KEY"), algorithm="HS256")
+    refresh = jwt.encode({
+        'name': serializer.data.name,
+        'email': serializer.data.email,
+        'roll': serializer.data.roll,
+        'batch': serializer.data.batch,
+        'authorizationLevel': AUTHORIZATION_LEVEL['STUDENT'],
+        'isActive': serializer.data.isActive,
+        'exp': datetime.utcnow() + timedelta(days=1)
+    }, env("JWT_SECRET_KEY"), algorithm="HS256")
     # return response
     return Response({'message': 'Login Successful', 'refresh_token': str(refresh)}, status=status.HTTP_200_OK)
 
@@ -81,5 +91,14 @@ def student(request):
     # return response   
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+@api_view(['GET'])
+def student_with_email(request):
+    # fetch student data
+    try:
+        student = Student.objects.get(email=email)
 
+    except Student.DoesNotExist:
 
+@api_view(['POST'])
+def mark_attendance(request):
+#  coursecode, teachercode,  batch code from request.tokenData
