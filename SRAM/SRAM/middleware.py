@@ -1,13 +1,9 @@
-# myproject/middleware.py
-
+from django.http import HttpResponseForbidden
+from SRAM.constants import AUTHORIZATION_LEVELS
 from django.http import HttpResponseForbidden
 from SRAM.utils import decode_jwt_token
 
-class JWTAuthenticationMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
+def auth(request,authLevel, *args, **kwargs):
         token = request.headers.get('Authorization')
         if not token :
             return HttpResponseForbidden('Unauthorized')
@@ -19,6 +15,6 @@ class JWTAuthenticationMiddleware:
                 request.tokenData = decoded_payload
             else:
                 return HttpResponseForbidden('Invalid token')
-
-        response = self.get_response(request)
-        return response
+        if not request.tokenData or request.tokenData.get('authorizationLevel') < AUTHORIZATION_LEVELS[authLevel]:
+            return HttpResponseForbidden('You are not authorized to access this page.')
+        return request
