@@ -1,0 +1,5 @@
+AUTHORIZATION_LEVEL= {
+    "ADMIN":2,
+    "FACULTY":1,
+    "STUDENT":0
+}
