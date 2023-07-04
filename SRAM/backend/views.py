@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Student
+from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus
 from .serializers import StudentSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -13,6 +13,7 @@ import cloudinary.api
 import jwt
 from SRAM.settings import env
 from SRAM.constants import AUTHORIZATION_LEVEL
+from SRAM.middleware import auth
 
 # Create your views here.
 @api_view(['POST'])
@@ -84,6 +85,7 @@ def login(request):
 
 @api_view(['GET'])
 def student(request):
+    request = auth(request, 'FACULTY')
     # fetch all student data
     students = Student.objects.all()
     # serialize data
@@ -94,11 +96,50 @@ def student(request):
 @api_view(['GET'])
 def student_with_email(request):
     # fetch student data
+    request = auth(request, 'STUDENT')
     try:
-        student = Student.objects.get(email=email)
-
+        student = Student.objects.get(email=request.tokenData['email'])
+        # serialize data
+        serializer = StudentSerializer(student)
+        # return response
+        return Response(serializer.data, status=status.HTTP_200_OK)
     except Student.DoesNotExist:
+        return Response({'message': 'Student Not Found'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['POST'])
 def mark_attendance(request):
-#  coursecode, teachercode,  batch code from request.tokenData
+    request = auth(request, 'STUDENT')
+    #  coursecode, teachercode,  batch code from request.tokenData
+    data = request.data
+    # check if data is valid
+    if data['coursecode'] == '' or data['teachercode'] == '':
+        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    # check if course exists
+    if not Course.objects.filter(code=data['coursecode']).exists():
+        return Response({'message': 'Course Not Found'}, status=status.HTTP_404_NOT_FOUND)
+    # check if faculty exists
+    if not Faculty.objects.filter(code=data['teachercode']).exists():
+        return Response({'message': 'Faculty Not Found'}, status=status.HTTP_404_NOT_FOUND)
+    # check if faculty code is active
+    facultyCodeStatus = FacultyCodeStatus.objects.get(faculty=Faculty.objects.get(code=data['teachercode']))
+    if not facultyCodeStatus.status:
+        return Response({'message': 'Faculty Code is not active'}, status=status.HTTP_401_UNAUTHORIZED)
+    # make unique code 
+    uniqueCode = data['coursecode']+';'+data['teachercode']+';'+request.tokenData['batch'].code
+    # check if unique code exists
+    if not Codes.objects.filter(uniqueCode=uniqueCode).exists():
+        return Response({'message': 'Invalid Code'}, status=status.HTTP_401_UNAUTHORIZED)
+    # get BatchCourseFaculty Object
+    batchCourseFaculty = BatchCourseFaculty.objects.get(batch=request.tokenData['batch'], course=Course.objects.get(code=data['coursecode']), faculty=Faculty.objects.get(code=data['teachercode']))
+    # check if batchCourseFaculty exists
+    if not batchCourseFaculty:
+        return Response({'message': 'Invalid Code'}, status=status.HTTP_401_UNAUTHORIZED)
+    # check if attendance is already marked
+    if Attendance.objects.filter(batchCourseFaculty=batchCourseFaculty, roll=Student.objects.get(email=request.tokenData['email']).roll, date=datetime.today()).exists():
+        return Response({'message': 'Attendance already marked'}, status=status.HTTP_401_UNAUTHORIZED)
+    # create new attendance object
+    attendance = Attendance(batchCourseFaculty=batchCourseFaculty, roll=Student.objects.get(email=request.tokenData['email']).roll, date=datetime.today())
+    # save attendance object
+    attendance.save()
+    # return response
+    return Response({'message': 'Attendance Marked'}, status=status.HTTP_201_CREATED)
