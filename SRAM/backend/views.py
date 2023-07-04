@@ -4,15 +4,19 @@ from .serializers import StudentSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from django.http import JsonResponse
-from sqlalchemy import create_engine, Text, select
 from backend.schema import LoginRequest
 import bcrypt
+from datetime import datetime
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+from rest_framework_simplejwt.tokens import RefreshToken
+
 # Create your views here.
 @api_view(['POST'])
 def register(request):
     # get data from request
-    data:Student = request.data
+    data = request.data
     # check if data is valid
     if data['name'] == '' or data['email'] == '' or data['roll'] == '' or data['password'] == '':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -20,8 +24,25 @@ def register(request):
     if Student.objects.filter(roll=data['roll']).exists():
         return Response({'message': 'Roll Number already exists'}, status=status.HTTP_400_BAD_REQUEST)
     # create new student object
-    student = Student(name=data['name'], email=data['email'], roll=data['roll'])
-    # save student object
+    student = Student(name=data['name'], email=data['email'], roll=data['roll'], password=data['password'], salt = bcrypt.gensalt(), batch=data['batch'])
+    # set password
+    student.setPassword(data['password'])
+    # get profileImage
+    profileImage = request.FILES.get('profileImage', None)
+    # upload profileImage to cloudinary
+    if profileImage is not None:
+        uploadResult = cloudinary.uploader.upload(profileImage)
+        print(uploadResult['url'])
+        student.profileImage = uploadResult['url']
+
+    # get idImage
+    idImage = request.FILES.get('idImage', None)
+    # upload idImage to cloudinary
+    if idImage is not None:
+        uploadResult = cloudinary.uploader.upload(idImage)
+        print(uploadResult['url'])
+        student.idImage = uploadResult['url']
+    # save student object  
     student.save()
     # return response
     return Response({'message': 'Student Registered'}, status=status.HTTP_201_CREATED)
@@ -34,12 +55,21 @@ def login(request):
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
     # check if student exists
     if not Student.objects.filter(email=data.email).exists():
-        return Response({'message': 'Student does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'message': 'Not Found. Please Contact Your Admin.'}, status=status.HTTP_404_NOT_FOUND)
     # get student object
     student = Student.objects.get(email=data.email)
     # check if password is correct
-
-
+    if not student.checkPassword(data.password):
+        return Response({'message': 'Incorrect Password'}, status=status.HTTP_401_UNAUTHORIZED)
+    # check if student is active
+    if not student.isActive:
+        return Response({'message': 'Account is not active'}, status=status.HTTP_401_UNAUTHORIZED)
+    # use serializer
+    serializer = StudentSerializer(student)
+    # create jwt token
+    refresh = RefreshToken.for_user(serializer.data)
+    # return response
+    return Response({'message': 'Login Successful', 'refresh_token': str(refresh)}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def student(request):

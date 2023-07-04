@@ -16,6 +16,7 @@ class Student(models.Model):
     requestStatus = models.CharField(max_length=1, choices=OptionEnum.choices, default=OptionEnum.OPTION2)
     batch = models.ForeignKey('Batch', on_delete=models.CASCADE, default=None)
     created = models.DateField(auto_now_add=True)
+    updated= models.DateField(auto_now_add=True)
     isActive = models.BooleanField(default=False)
     salt = models.CharField("Salt")
     def __str__(self):
