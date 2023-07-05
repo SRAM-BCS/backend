@@ -153,8 +153,22 @@ def get_student_attendance(request):
     if not student:
         return Response({'message': 'Student Not Found'}, status=status.HTTP_404_NOT_FOUND)
     # get all attendance of student
-    attendance = Attendance.objects.filter(roll=student.roll)
-    # serialize data
-    serializer = AttendanceSerializer(attendance, many=True)
+    attendance = Attendance.objects.filter(roll=student.roll).get()
+    # get BATCHFACULTYCOURSE object
+    batchCourseFaculty = BatchCourseFaculty.objects.get(id=attendance.BCF_id)
+    # check if exists
+    if not batchCourseFaculty:
+        return Response({'message': 'Attendance Not Found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    # data
+    data = {
+        "roll": attendance.roll,
+        "batch": batchCourseFaculty.batch.title,
+        "course": batchCourseFaculty.course.name,
+        "faculty": batchCourseFaculty.faculty.name,
+        "date":attendance.date,
+        "name": student.name,
+        "email":student.email
+    }
     # return response
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(data, status=status.HTTP_200_OK)
