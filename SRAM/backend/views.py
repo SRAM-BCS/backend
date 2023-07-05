@@ -77,7 +77,7 @@ def login(request):
         'email': serializer.data.email,
         'roll': serializer.data.roll,
         'batch': serializer.data.batch,
-        'authorizationLevel': AUTHORIZATION_LEVEL['STUDENT'],
+        'authorizationLevel': AUTHORIZATION_LEVELS['STUDENT'],
         'isActive': serializer.data.isActive,
         'exp': datetime.utcnow() + timedelta(days=1)
     }, env("JWT_SECRET_KEY"), algorithm="HS256")

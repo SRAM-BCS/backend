@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from SRAM.backend.models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus
-from SRAM.backend.serializers import StudentSerializer, AttendanceSerializer
+from backend.models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus
+from backend.serializers import StudentSerializer, AttendanceSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -12,7 +12,7 @@ import cloudinary.uploader
 import cloudinary.api
 import jwt
 from SRAM.settings import env
-from SRAM.constants import AUTHORIZATION_LEVEL
+from SRAM.constants import AUTHORIZATION_LEVELS
 from SRAM.middleware import auth
 # Create your views here.
 
