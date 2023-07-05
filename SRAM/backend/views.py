@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus, OTPModel
+from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus, OTPModel, VerifiedEmails, QRCode
 from .serializers import StudentSerializer, AttendanceSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -25,6 +25,14 @@ def register(request):
     # check if data is valid
     if data['name'] == '' or data['email'] == '' or data['roll'] == '' or data['password'] == '':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # check if email in verified email
+    if not VerifiedEmails.objects.filter(email=data['email']).exists():
+        return Response({'message': 'Email not verified'}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        # delete verified email instance
+        VerifiedEmails.objects.filter(email=data['email']).delete()
+
     # check if roll number already exists
     if Student.objects.filter(roll=data['roll']).exists():
         return Response({'message': 'Roll Number already exists'}, status=status.HTTP_400_BAD_REQUEST)
@@ -93,7 +101,9 @@ def student(request):
     # serialize data
     serializer = StudentSerializer(students, many=True)
     # return response   
+    # return Response(serializer.data, status=status.HTTP_200_OK)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 @api_view(['GET'])
 def student_with_email(request):
@@ -111,7 +121,7 @@ def student_with_email(request):
 @api_view(['POST'])
 def mark_attendance(request):
     request = auth(request, 'STUDENT')
-    #  coursecode, teachercode,  batch code from request.tokenData
+    #  coursecode, teachercode, room code, batch code from request.tokenData
     data = request.data
     # check if data is valid
     if data['coursecode'] == '' or data['teachercode'] == '':
@@ -126,8 +136,14 @@ def mark_attendance(request):
     facultyCodeStatus = FacultyCodeStatus.objects.get(faculty=Faculty.objects.get(code=data['teachercode']))
     if not facultyCodeStatus.status:
         return Response({'message': 'Faculty Code is not active'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    # check if QR room code is present
+    if not QRCode.objects.filter(classRoom=data['classRoom']).exists():
+        return Response({'message': 'QR Code Not Found'}, status=status.HTTP_404_NOT_FOUND)
+    
     # make unique code 
-    uniqueCode = data['coursecode']+';'+data['teachercode']+';'+request.tokenData['batch'].code
+    uniqueCode = data['coursecode']+';'+data['teachercode']+';'+request.tokenData['batch'].code+";"+data['classRoom']
+
     # check if unique code exists
     if not Codes.objects.filter(uniqueCode=uniqueCode).exists():
         return Response({'message': 'Invalid Code'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -176,11 +192,11 @@ def get_student_attendance(request):
     return Response(data, status=status.HTTP_200_OK)
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 def generate_otp(request):
     otp = randint(100000, 999999)
     print(otp)
-    email = request.POST.get("email")
+    email = request.data["email"]
     if not email:
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
     # check if email already in OTPModel
@@ -195,4 +211,22 @@ def generate_otp(request):
     send_email(to_email=email, body="Your OTP is "+str(otp), subject="Attendance Management System")
     return Response({'message': 'OTP Sent'}, status=status.HTTP_200_OK)
 
+@api_view(['POST'])
+def verify_otp(request):
+    otp = request.data["otp"]
+    email = request.data["email"]
+    if not otp or not email:
+        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    # check if email already in OTPModel
+    if OTPModel.objects.filter(email=email).exists():
+        # delete the OTPModel instance
+        otpModel = OTPModel.objects.get(email=email)
+        # check if otp is correct
+        if otpModel.otp != int(otp):
+            return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
+        # delete the OTPModel instance
+        otpModel.delete()
+        # create Verified Email Instance
+        verifiedEmail = VerifiedEmails(email=email)
+        verifiedEmail.save()
 

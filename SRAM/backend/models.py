@@ -1,6 +1,7 @@
 from django.db import models
 from cloudinary.models import CloudinaryField
 import bcrypt
+from datetime import datetime, timedelta
 # Create your models here.
 class Student(models.Model):
     class OptionEnum(models.TextChoices):
@@ -8,17 +9,17 @@ class Student(models.Model):
         OPTION2 = '2', 'Pending'
         OPTION3 = '0', 'Denied'
     name = models.CharField("Name", max_length=240)
-    email = models.EmailField()
-    password = models.CharField("Password", max_length=240)
+    email = models.EmailField(default='')
+    password = models.CharField("Password", max_length=240, default='')
     roll = models.CharField("RollNumber", max_length=240, primary_key=True)
     profileImage = CloudinaryField('image',null=True) # for recognition
     idImage = CloudinaryField('image',null=True) # for verification
     requestStatus = models.CharField(max_length=1, choices=OptionEnum.choices, default=OptionEnum.OPTION2)
     batch = models.ForeignKey('Batch', on_delete=models.CASCADE, default=None)
-    created = models.DateField(auto_now_add=True)
-    updated= models.DateField(auto_now_add=True)
+    created = models.DateField( default=datetime.now())
+    updated= models.DateField( default=datetime.now())
     isActive = models.BooleanField(default=False)
-    salt = models.CharField("Salt")
+    salt = models.CharField("Salt", default='')
     def __str__(self):
         return self.name
     def setPassword(self, password):
@@ -27,21 +28,27 @@ class Student(models.Model):
         return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))
 
 class OTPModel(models.Model):
-    email = models.EmailField()
-    otp = models.CharField(max_length=6)
-    created = models.DateTimeField(auto_now_add=True)
+    email = models.EmailField(default='')
+    otp = models.IntegerField(max_length=6, default=None)
+    created = models.DateTimeField(default=datetime.now())
+    def __str__(self):
+        return self.email
+
+class VerifiedEmails(models.Model):
+    email = models.EmailField(default='')
+    created = models.DateTimeField(default=datetime.now())
     def __str__(self):
         return self.email
     
 class Faculty(models.Model):
-    name = models.CharField("Name", max_length=240)
-    email = models.EmailField()
-    password = models.CharField("Password", max_length=240)
-    created = models.DateField(auto_now_add=True)
+    name = models.CharField("Name", max_length=240, default='')
+    email = models.EmailField(default='')
+    password = models.CharField("Password", max_length=240, default='')
+    created = models.DateField(default=datetime.now())
     code = models.CharField("Code", max_length=240, primary_key=True)
-    courses = models.ManyToManyField('Course', through='BatchCourseFaculty')
+    courses = models.ManyToManyField('Course', through='BatchCourseFaculty', default=[])
     isActive = models.BooleanField(default=False)
-    salt = models.CharField("Salt")
+    salt = models.CharField("Salt", default='')
     def __str__(self):
         return self.name    
     def setPassword(self, password):
@@ -50,63 +57,69 @@ class Faculty(models.Model):
         return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))
 
 class Batch(models.Model):
-    title = models.CharField("Title", max_length=240)
-    code = models.CharField("Code", max_length=240, primary_key=True)
-    courses = models.ManyToManyField('Course', through='BatchCourseFaculty')
-    created = models.DateField(auto_now_add=True)
-    updated = models.DateField(auto_now_add=True)
+    title = models.CharField("Title", max_length=240, default='')
+    code = models.CharField("Code", max_length=240, primary_key=True, default='')
+    courses = models.ManyToManyField('Course', through='BatchCourseFaculty', default=[])
+    created = models.DateField( default=datetime.now())
+    updated = models.DateField( default=datetime.now())
     
 class Course(models.Model):
-    name = models.CharField("Name", max_length=240)
-    code = models.CharField("Code", max_length=240, primary_key=True)
-    batches = models.ManyToManyField(Batch, through='BatchCourseFaculty')
-    created = models.DateField(auto_now_add=True)
-    updated = models.DateField(auto_now_add=True)
+    name = models.CharField("Name", max_length=240,default='')
+    code = models.CharField("Code", max_length=240, primary_key=True, default='')
+    batches = models.ManyToManyField(Batch, through='BatchCourseFaculty', default=[])
+    created = models.DateField( default=datetime.now())
+    updated = models.DateField( default=datetime.now())
     def __str__(self):
         return self.name
     
 class Codes(models.Model):
-    uniqueCode = models.CharField("UniqueCode", max_length=240, primary_key=True)
+    uniqueCode = models.CharField("UniqueCode", max_length=240, primary_key=True, default='')
     isActive = models.BooleanField(default=False)
-    created = models.DateField(auto_now_add=True)
-    updated = models.DateField(auto_now_add=True)
+    created = models.DateField( default=datetime.now())
+    updated = models.DateField( default=datetime.now())
     def __str__(self):
         return self.name    
 
 class BatchCourseFaculty(models.Model):
-    batch = models.ForeignKey(Batch, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
-    created = models.DateField(auto_now_add=True)
-    updated = models.DateField(auto_now_add=True)
+    batch = models.ForeignKey(Batch, on_delete=models.CASCADE, default=None)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, default=None)
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, default=None)
+    created = models.DateField( default=datetime.now())
+    updated = models.DateField( default=datetime.now())
     def __str__(self):
         return self.name
     
 
 class Attendance(models.Model):
-    BCF_id = models.ForeignKey(BatchCourseFaculty, on_delete=models.CASCADE)
-    roll = models.ForeignKey(Student, on_delete=models.CASCADE)
-    date = models.DateField(auto_now_add=True)
+    BCF_id = models.ForeignKey(BatchCourseFaculty, on_delete=models.CASCADE, default=None)
+    roll = models.ForeignKey(Student, on_delete=models.CASCADE, default=None)
+    date = models.DateField( default=datetime.today())
+    created = models.DateField( default=datetime.now())
+    updated = models.DateField( default=datetime.now())
     def __str__(self):
         return self.name
     
 class QRCode(models.Model):
-    classRoom = models.CharField("ClassRoom", max_length=240)
-    qrCode = models.CharField("QRCode", max_length=240, primary_key=True) #url of the QR
+    classRoom = models.CharField("ClassRoom", max_length=240, default='')
+    qrCode = models.CharField("QRCode", max_length=240, primary_key=True, default='') #url of the QR
+    created = models.DateField( default=datetime.now())
+    updated = models.DateField( default=datetime.now())
     def __str__(self):
         return self.name
     
 
 class FacultyCodeStatus(models.Model):
-    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, default=None)
     status = models.BooleanField(default=False)
-    lastActivated = models.DateField("LastActivated")
+    lastActivated = models.DateField("LastActivated", default=datetime.now())
+    created = models.DateField( default=datetime.now())
+    updated = models.DateField( default=datetime.now())
     def __str__(self):
         return self.name
     
     
 class Admin(models.Model):
-    email = models.EmailField()
-    password = models.CharField("Password", max_length=240)
+    email = models.EmailField(default='')
+    password = models.CharField("Password", max_length=240, default='')
     def __str__(self):
         return self.name
