@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus
+from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus, OTPModel
 from .serializers import StudentSerializer, AttendanceSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -12,8 +12,10 @@ import cloudinary.uploader
 import cloudinary.api
 import jwt
 from SRAM.settings import env
-from SRAM.constants import AUTHORIZATION_LEVEL
+from SRAM.constants import AUTHORIZATION_LEVELS
 from SRAM.middleware import auth
+from random import randint
+from SRAM.utils import send_email
 
 # Create your views here.
 @api_view(['POST'])
@@ -172,3 +174,25 @@ def get_student_attendance(request):
     }
     # return response
     return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def generate_otp(request):
+    otp = randint(100000, 999999)
+    print(otp)
+    email = request.POST.get("email")
+    if not email:
+        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    # check if email already in OTPModel
+    if OTPModel.objects.filter(email=email).exists():
+        otpModel = OTPModel.objects.get(email=email)
+        otpModel.otp = otp
+        otpModel.save()
+    else:
+        otpModel = OTPModel(email=email, otp=otp)
+        otpModel.save()
+    # send otp to email
+    send_email(to_email=email, body="Your OTP is "+str(otp), subject="Attendance Management System")
+    return Response({'message': 'OTP Sent'}, status=status.HTTP_200_OK)
+
+
