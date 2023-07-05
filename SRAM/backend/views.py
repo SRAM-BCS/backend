@@ -25,6 +25,9 @@ def register(request):
     # check if data is valid
     if data['name'] == '' or data['email'] == '' or data['roll'] == '' or data['password'] == '':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    # check if iiitm.ac.in domain
+    if data['email'].split('@')[1] != 'iiitm.ac.in':
+        return Response({'message': 'Invalid Email'}, status=status.HTTP_400_BAD_REQUEST)
     
     # check if email in verified email
     if not VerifiedEmails.objects.filter(email=data['email']).exists():
@@ -196,9 +199,14 @@ def get_student_attendance(request):
 def generate_otp(request):
     otp = randint(100000, 999999)
     print(otp)
-    email = request.data["email"]
+    email = request.data["email"] 
     if not email:
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # check if iiitm.ac.in domain
+    if email.split('@')[1] != 'iiitm.ac.in':
+        return Response({'message': 'Invalid Email'}, status=status.HTTP_400_BAD_REQUEST)
+   
     # check if email already in OTPModel
     if OTPModel.objects.filter(email=email).exists():
         otpModel = OTPModel.objects.get(email=email)
