@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from backend.models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus
+from backend.models import Student, Admin
 from backend.serializers import StudentSerializer, AttendanceSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -38,7 +38,7 @@ def pending_student_status(request):
 
 @api_view(['POST'])
 def save_student_status(request):
-    request = auth(request, 'STUDENT')
+    request = auth(request, 'ADMIN')
     data = request.data
     
     if data['roll'] == '' or data['statusNum'] == '':
@@ -49,3 +49,17 @@ def save_student_status(request):
     student.save()
     
     return Response({'message': 'Student Status set to'+Student.OptionEnum[f"OPTION{data['statusNum']}"]}, status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
+def save_new_admin(request):
+    request = auth(request, 'ADMIN')
+    data = request.data
+    if data["email"]=='' or data["password"]=='':
+        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    #Save a new admin object
+    newAdmin = Admin(email=data["email"],password=data['password'])
+    newAdmin.save()
+    return Response({'message': 'New Admin Saved'}, status=status.HTTP_201_CREATED)
+    
+        
