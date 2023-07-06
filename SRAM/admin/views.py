@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from backend.models import Student, Admin, QRCode, Batch, Course, Faculty, Attendance
+from backend.models import Student, Admin, QRCodeTable, Batch, Course, Faculty, Attendance
 from backend.serializers import StudentSerializer, AttendanceSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -84,11 +84,11 @@ def QR(request):
         uploadResult = cloudinary.uploader.upload(
         "data:image/png;base64," + qr_base64,format="png")
         qrURL = uploadResult['secure_url']
-        classQR = QRCode.objects.get(classRoom=data['classRoom'])
+        classQR = QRCodeTable.objects.get(classRoom=data['classRoom'])
         if(classQR is not None):
             classQR.qrCode = qrURL
         else:
-            classQR = QRCode(classRoom=data['classRoom'],qrCode=qrURL)
+            classQR = QRCodeTable(classRoom=data['classRoom'],qrCode=qrURL)
         classQR.save()         
         return Response({'message': 'New QR Generated', 'data':classQR}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
@@ -96,7 +96,7 @@ def QR(request):
         classRoom = request.query_params.get('classRoom', None)
         if classRoom is None:
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-        qr = QRCode.objects.get(classRoom=classRoom)
+        qr = QRCodeTable.objects.get(classRoom=classRoom)
         return Response({'message': 'QR Genrated','data':qr}, status=status.HTTP_200_OK)
     
 
@@ -105,11 +105,11 @@ def QR(request):
 @api_view(['POST','GET'])
 def batch(request):
     if request.method == "POST":
-        request = auth(request, 'ADMIN')
+        # request = auth(request, 'ADMIN')
         data = request.data
-        if data["name"]=='' or data["code"]=='':
+        if data["title"]=='' or data["code"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-        newBatch = Batch(name=data["name"],code=data["code"])
+        newBatch = Batch(title=data["title"],code=data["code"])
         newBatch.save()
         return Response({'message': 'New Batch Saved'}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
