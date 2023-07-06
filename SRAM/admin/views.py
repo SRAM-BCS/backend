@@ -99,3 +99,35 @@ def QR(request):
         qr = QRCode.objects.get(classRoom=classRoom)
         return Response({'message': 'QR Genrated','data':qr}, status=status.HTTP_200_OK)
     
+
+# save_new_batch, get_all_batches, save_new_course, get_all_courses
+
+@api_view(['POST','GET'])
+def batch(request):
+    if request.method == "POST":
+        request = auth(request, 'ADMIN')
+        data = request.data
+        if data["name"]=='' or data["code"]=='':
+            return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+        newBatch = Batch(name=data["name"],code=data["code"])
+        newBatch.save()
+        return Response({'message': 'New Batch Saved'}, status=status.HTTP_201_CREATED)
+    elif request.method == 'GET':
+        batches = Batch.objects.all()
+        return Response({'message': 'All Batches','data':batches}, status=status.HTTP_200_OK)
+        
+    return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST','GET'])
+def course(request): 
+    if request.method == "POST":
+        request = auth(request, 'ADMIN')
+        data = request.data
+        if data["name"]=='' or data["code"]=='':
+            return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+        newCourse = Course(name=data["name"],code=data["code"])
+        newCourse.save()
+        return Response({'message': 'New Course Saved'}, status=status.HTTP_201_CREATED)
+    elif request.method == 'GET':
+        courses = Course.objects.all()
+        return Response({'message': 'All Courses','data':courses}, status=status.HTTP_200_OK)    
