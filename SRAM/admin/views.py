@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from backend.models import Student, Admin
+from backend.models import Student, Admin, QRCode, Batch, Course, Faculty, Attendance
 from backend.serializers import StudentSerializer, AttendanceSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -10,6 +10,9 @@ from datetime import datetime, timedelta
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import qrcode
+import base64
+from io import BytesIO
 import jwt
 from SRAM.settings import env
 from SRAM.constants import AUTHORIZATION_LEVELS
@@ -62,4 +65,37 @@ def save_new_admin(request):
     newAdmin.save()
     return Response({'message': 'New Admin Saved'}, status=status.HTTP_201_CREATED)
     
-        
+
+@api_view(['POST','GET'])
+def QR(request):
+    if(request.method=='POST'):
+        request = auth(request, 'ADMIN')
+        data = request.data
+        if(data["classRoom"]==''):
+            return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(data['classRoom'])
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        buffer = BytesIO()
+        qr_img.save(buffer, format="PNG")
+        qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        buffer.close()    
+        uploadResult = cloudinary.uploader.upload(
+        "data:image/png;base64," + qr_base64,format="png")
+        qrURL = uploadResult['secure_url']
+        classQR = QRCode.objects.get(classRoom=data['classRoom'])
+        if(classQR is not None):
+            classQR.qrCode = qrURL
+        else:
+            classQR = QRCode(classRoom=data['classRoom'],qrCode=qrURL)
+        classQR.save()         
+        return Response({'message': 'New QR Generated', 'data':classQR}, status=status.HTTP_201_CREATED)
+    elif request.method == 'GET':
+        #Get classroom from request query
+        classRoom = request.query_params.get('classRoom', None)
+        if classRoom is None:
+            return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+        qr = QRCode.objects.get(classRoom=classRoom)
+        return Response({'message': 'QR Genrated','data':qr}, status=status.HTTP_200_OK)
+    
