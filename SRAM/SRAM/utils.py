@@ -4,6 +4,17 @@ import jwt
 from .settings import env
 import smtplib
 from email.message import EmailMessage
+from deepface import DeepFace
+import base64
+
+def convert_image_to_base64(image_data):
+    encoded_string = base64.b64encode(image_data)
+    return encoded_string.decode('utf-8')
+
+def verify_user(img1:str, img2:str, model_name:str="Facenet512"):
+    result = DeepFace.verify(img1_path = img1, img2_path = img2, model_name=model_name)
+    return result
+
 
 def generate_jwt_token(payload):
     token = jwt.encode(payload, env("JWT_SECRET_KEY"), algorithm='HS256')

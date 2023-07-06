@@ -1,10 +1,10 @@
 from django.shortcuts import render
 from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus, OTPModel, VerifiedEmails, QRCodeTable
-from .serializers import StudentSerializer, AttendanceSerializer
+from .serializers import StudentSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from backend.schema import LoginRequest
+from backend.schema import LoginRequest, RegisterRequest, ForgotPasswordRequest
 import bcrypt
 from datetime import datetime, timedelta
 import cloudinary
@@ -15,13 +15,13 @@ from SRAM.settings import env
 from SRAM.constants import AUTHORIZATION_LEVELS
 from SRAM.middleware import auth
 from random import randint
-from SRAM.utils import send_email
+from SRAM.utils import send_email, verify_user, convert_image_to_base64
 
 # Create your views here.
 @api_view(['POST'])
 def register(request):
     # get data from request
-    data = request.data
+    data:RegisterRequest = request.data
     # check if data is valid
     if data['name'] == '' or data['email'] == '' or data['roll'] == '' or data['password'] == '':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -240,4 +240,58 @@ def verify_otp(request):
         verifiedEmail = VerifiedEmails(email=email)
         verifiedEmail.save()
         return Response({'message': 'Email Verified Successfully'}, status=status.HTTP_202_ACCEPTED)
+
+@api_view(['POST'])
+def forgot_password(request):
+    request = auth(request, 'STUDENT')
+    data: ForgotPasswordRequest = request.data
+    if not data.newPassword or not data.otp:
+        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    # check if email already in OTPModel
+    if not OTPModel.objects.filter(email=request.tokenData['email']).exists():
+        return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
+    # delete the OTPModel instance
+    otpModel = OTPModel.objects.get(email=request.tokenData['email'])
+    # check if otp is correct
+    if otpModel.otp != int(data.otp):
+        return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
+    # delete the OTPModel instance
+    otpModel.delete()
+    # get student
+    student = Student.objects.get(email=request.tokenData['email'])
+    # check if student exists
+    if not student:
+        return Response({'message': 'Student Not Found'}, status=status.HTTP_404_NOT_FOUND)
+    # set new password
+    student.setPassword(data.newPassword)
+    # save student
+    student.save()
+    # return response
+    return Response({'message': 'Password Changed Successfully'}, status=status.HTTP_202_ACCEPTED)
+
+# TODO: Once tested, remove the route and make it an internal function which will be used in the mark_attendance
+@api_view(['POST'])
+def face_verification(request):
+    request = auth(request, 'STUDENT')
+    # get student by email
+    student = Student.objects.get(email=request.tokenData['email'])
+    # check if exists
+    if not student:
+        return Response({'message': 'Student Not Found'}, status=status.HTTP_404_NOT_FOUND)
+    # get image
+    image = request.FILES['image']
+    # get profile image from student
+    profileImage = student.profileImage
+    # check if profile image exists
+    if not profileImage:
+        return Response({'message': 'Profile Image Not Found'}, status=status.HTTP_404_NOT_FOUND)
+    encoded_image = convert_image_to_base64(image.read())
+    data = verify_user(img1=encoded_image, img2=profileImage)
+    if data['verified']:
+        return Response({'message': 'Verified', 'status':True}, status=status.HTTP_200_OK)
+    else:
+        return Response({'message': 'Not Verified', 'status':False}, status=status.HTTP_401_UNAUTHORIZED)
+    
+
+
 
