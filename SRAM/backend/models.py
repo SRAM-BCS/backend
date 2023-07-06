@@ -99,9 +99,9 @@ class Attendance(models.Model):
     def __str__(self):
         return self.name
     
-class QRCode(models.Model):
-    classRoom = models.CharField("ClassRoom", max_length=240, default='')
-    qrCode = models.CharField("QRCode", max_length=240, primary_key=True, default='') #url of the QR
+class QRCodeTable(models.Model):
+    classRoom = models.CharField("ClassRoom", max_length=240, default='', primary_key=True)
+    qrCode = models.CharField("QRCode", max_length=240, default='')
     created = models.DateField( default=datetime.now())
     updated = models.DateField( default=datetime.now())
     def __str__(self):
