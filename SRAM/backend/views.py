@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus, OTPModel, VerifiedEmails, QRCode
+from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus, OTPModel, VerifiedEmails, QRCodeTable
 from .serializers import StudentSerializer, AttendanceSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -32,10 +32,7 @@ def register(request):
     # check if email in verified email
     if not VerifiedEmails.objects.filter(email=data['email']).exists():
         return Response({'message': 'Email not verified'}, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        # delete verified email instance
-        VerifiedEmails.objects.filter(email=data['email']).delete()
-
+    
     # check if roll number already exists
     if Student.objects.filter(roll=data['roll']).exists():
         return Response({'message': 'Roll Number already exists'}, status=status.HTTP_400_BAD_REQUEST)
@@ -58,8 +55,13 @@ def register(request):
         uploadResult = cloudinary.uploader.upload(idImage)
         print(uploadResult['url'])
         student.idImage = uploadResult['url']
+
     # save student object  
     student.save()
+
+    # delete verified email instance
+    VerifiedEmails.objects.filter(email=data['email']).delete()
+
     # return response
     return Response({'message': 'Student Registered'}, status=status.HTTP_201_CREATED)
 
@@ -141,7 +143,7 @@ def mark_attendance(request):
         return Response({'message': 'Faculty Code is not active'}, status=status.HTTP_401_UNAUTHORIZED)
     
     # check if QR room code is present
-    if not QRCode.objects.filter(classRoom=data['classRoom']).exists():
+    if not QRCodeTable.objects.filter(classRoom=data['classRoom']).exists():
         return Response({'message': 'QR Code Not Found'}, status=status.HTTP_404_NOT_FOUND)
     
     # make unique code 
@@ -237,4 +239,5 @@ def verify_otp(request):
         # create Verified Email Instance
         verifiedEmail = VerifiedEmails(email=email)
         verifiedEmail.save()
+        return Response({'message': 'Email Verified Successfully'}, status=status.HTTP_202_ACCEPTED)
 
