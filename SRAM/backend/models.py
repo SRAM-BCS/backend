@@ -19,7 +19,7 @@ class Student(models.Model):
     created = models.DateField( default=datetime.now())
     updated= models.DateField( default=datetime.now())
     isActive = models.BooleanField(default=False)
-    salt = models.CharField("Salt", default='')
+    salt = models.CharField("Salt", default='Nothing')
     def __str__(self):
         return self.name
     def setPassword(self, password):
@@ -49,7 +49,7 @@ class Faculty(models.Model):
     code = models.CharField("Code", max_length=240, primary_key=True)
     courses = models.ManyToManyField('Course', through='BatchCourseFaculty', default=[])
     isActive = models.BooleanField(default=False)
-    salt = models.CharField("Salt", default='')
+    salt = models.CharField("Salt", default='Nothing')
     def __str__(self):
         return self.name    
     def setPassword(self, password):
@@ -95,6 +95,7 @@ class Attendance(models.Model):
     BCF_id = models.ForeignKey(BatchCourseFaculty, on_delete=models.CASCADE, default=None)
     roll = models.ForeignKey(Student, on_delete=models.CASCADE, default=None)
     date = models.DateField( default=datetime.today())
+    classRoom= models.CharField(default='', max_length=240)
     created = models.DateField( default=datetime.now())
     updated = models.DateField( default=datetime.now())
     def __str__(self):
@@ -123,7 +124,7 @@ class FacultyCodeStatus(models.Model):
 class Admin(models.Model):
     email = models.EmailField(default='')
     password = models.CharField("Password", max_length=240, default='', null=True, blank=True)
-    salt = models.CharField("Salt", default='')
+    salt = models.CharField("Salt", default='Nothing')
     def __str__(self):
         return self.name
     def setPassword(self, password):

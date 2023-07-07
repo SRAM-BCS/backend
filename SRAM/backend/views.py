@@ -161,7 +161,7 @@ def mark_attendance(request):
     if Attendance.objects.filter(batchCourseFaculty=batchCourseFaculty, roll=Student.objects.get(email=request.tokenData['email']).roll, date=datetime.today()).exists():
         return Response({'message': 'Attendance already marked'}, status=status.HTTP_401_UNAUTHORIZED)
     # create new attendance object
-    attendance = Attendance(batchCourseFaculty=batchCourseFaculty, roll=Student.objects.get(email=request.tokenData['email']).roll, date=datetime.today())
+    attendance = Attendance(batchCourseFaculty=batchCourseFaculty, roll=Student.objects.get(email=request.tokenData['email']).roll, date=datetime.today(), classRoom=data['classRoom'])
     # save attendance object
     attendance.save()
     # return response
@@ -238,11 +238,11 @@ def verify_otp(request):
             # generate new otp and send email then return
             generate_otp(request)
             return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
-        # delete the OTPModel instance
-        otpModel.delete()
         # create Verified Email Instance
         verifiedEmail = VerifiedEmails(email=email)
         verifiedEmail.save()
+        # delete the OTPModel instance
+        otpModel.delete()
         return Response({'message': 'Email Verified Successfully'}, status=status.HTTP_202_ACCEPTED)
 
 @api_view(['PUT'])
@@ -268,7 +268,6 @@ def forgot_password(request):
         return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
     
     # delete the OTPModel instance
-    otpModel.delete()
     # get student
     student = Student.objects.get(email=data.email)
     # check if student exists
@@ -278,6 +277,8 @@ def forgot_password(request):
     student.setPassword(data.newPassword)
     # save student
     student.save()
+    # delete otp from model
+    otpModel.delete()
     # return response
     return Response({'message': 'Password Changed Successfully'}, status=status.HTTP_202_ACCEPTED)
 

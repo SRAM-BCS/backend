@@ -1,6 +1,7 @@
 from django.shortcuts import render
-from backend.models import Faculty,FacultyCodeStatus
+from backend.models import Faculty,FacultyCodeStatus, OTPModel
 from backend.serializers import StudentSerializer
+from backend.views import generate_otp
 from SRAM.middleware import auth
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -11,6 +12,7 @@ from datetime import datetime, timedelta
 import jwt
 from SRAM.settings import env
 from SRAM.constants import AUTHORIZATION_LEVELS
+import bcrypt
 
 
 
@@ -29,9 +31,21 @@ def forgotPassword(request):
    if data["otp"] == '' or data["email"] == '' or data['password'] == '':
       return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
    faculty = Faculty.objects.get(email=data["email"])
-   if faculty.otp == data["otp"]:
+   if not faculty:
+      return Response({'message': 'Invalid Email'}, status=status.HTTP_400_BAD_REQUEST)
+   otpModel = OTPModel.objects.get(email=data["email"])
+   if not otpModel:
+      return Response({'message': 'Invalid Email'}, status=status.HTTP_400_BAD_REQUEST)
+   
+   if otpModel.expiry < datetime.now():
+      generate_otp(request)
+      return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
+
+   if otpModel.otp == data["otp"]:
+      faculty.salt = bcrypt.gensalt()
       faculty.setPassword(data['password'])
       faculty.save()
+      otpModel.delete()
       return Response({'message': 'Password Changed'}, status=status.HTTP_200_OK)
    else:
       return Response({'message': 'Invalid OTP'}, status=status.HTTP_400_BAD_REQUEST)
