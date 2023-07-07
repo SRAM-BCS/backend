@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from backend.models import Student, Admin, QRCodeTable, Batch, Course, Faculty, Attendance
-from backend.serializers import StudentSerializer, AttendanceSerializer, BatchSerializer, FacultySerializer
+from backend.serializers import StudentSerializer, AttendanceSerializer, BatchSerializer, FacultySerializer, QRCodeSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -72,7 +72,7 @@ def save_new_admin(request):
 @api_view(['POST','GET'])
 def QR(request):
     if(request.method=='POST'):
-        request = auth(request, 'ADMIN')
+        # request = auth(request, 'ADMIN')
         data = request.data
         if(data["classRoom"]==''):
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -87,13 +87,10 @@ def QR(request):
         uploadResult = cloudinary.uploader.upload(
         "data:image/png;base64," + qr_base64,format="png")
         qrURL = uploadResult['secure_url']
-        classQR = QRCodeTable.objects.get(classRoom=data['classRoom'])
-        if(classQR is not None):
-            classQR.qrCode = qrURL
-        else:
-            classQR = QRCodeTable(classRoom=data['classRoom'],qrCode=qrURL)
-        classQR.save()         
-        return Response({'message': 'New QR Generated', 'data':classQR}, status=status.HTTP_201_CREATED)
+        classQR = QRCodeTable(classRoom=data['classRoom'],qrCode=qrURL)
+        classQR.save()        
+        serializedData = QRCodeSerializer(classQR) 
+        return Response({'message': 'New QR Generated', 'data':serializedData.data}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
         #Get classroom from request query
         classRoom = request.query_params.get('classRoom', None)
