@@ -31,6 +31,7 @@ class OTPModel(models.Model):
     email = models.EmailField(default='')
     otp = models.IntegerField(max_length=6, default=None)
     created = models.DateTimeField(default=datetime.now())
+    expiry = models.DateTimeField(default=datetime.now()+timedelta(minutes=3))
     def __str__(self):
         return self.email
 
