@@ -73,7 +73,7 @@ def save_new_admin(request):
 @api_view(['POST','GET'])
 def QR(request):
     if(request.method=='POST'):
-        # request = auth(request, 'ADMIN')
+        request = auth(request, 'ADMIN')
         data = request.data
         if(data["classRoom"]==''):
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -107,7 +107,7 @@ def QR(request):
 @api_view(['POST','GET'])
 def batch(request):
     if request.method == "POST":
-        # request = auth(request, 'ADMIN')
+        request = auth(request, 'ADMIN')
         data = request.data
         if data["title"]=='' or data["code"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -189,7 +189,7 @@ def get_all_admins():
 @api_view(['POST','GET'])
 def faculty(request):
     if request.method == 'POST':
-        # request = auth(request, 'ADMIN')
+        request = auth(request, 'ADMIN')
         data = request.data
         if data["name"]=='' or data["email"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)

@@ -106,6 +106,15 @@ def ToggleCodeStatus(facultyCode,classRoom=""): #Helper Function to Toggle code 
       AutoFalseCodeStatus.apply_async(args=[facultyCode,classRoom],eta=datetime.now()+timedelta(minutes=10))
    codeStatus.save()
    return codeStatus 
-
-  
  
+@api_view(['POST'])
+def facultyBatchCourse():
+   request = auth(request,'FACULTY')
+   data = request.data
+   faculty = Faculty.objects.get(email=request.tokenData['email'])
+   if data['batch'] != '':
+      faculty.batch = data['batch']
+   if data['course'] != '':
+      faculty.course = data['course']
+   faculty.save()
+   return Response({'message':'Batch and Course Updated'}, status=status.HTTP_200_OK)
