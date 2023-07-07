@@ -10,6 +10,7 @@ from SRAM.celery import app
 from datetime import datetime, timedelta
 import jwt
 from SRAM.settings import env
+from SRAM.constants import AUTHORIZATION_LEVELS
 
 
 
@@ -49,6 +50,7 @@ def login(request):
       'name': faculty.name,
       'exp': datetime.utcnow() + timedelta(days=1),
       'iat': datetime.utcnow(),
+      'authorizationLevel':AUTHORIZATION_LEVELS['FACULTY']
    }
    token = jwt.encode(payload, env("JWT_SECRET_KEY"), algorithm='HS256')
    return Response({'message':'Logged in Successfully', 'token': token}, status=status.HTTP_200_OK)

@@ -174,7 +174,7 @@ def admin_login(request):
     if not admin.checkPassword(data["password"]):
         return Response({'message': 'Invalid Password'}, status=status.HTTP_400_BAD_REQUEST)
     # set jwt token
-    token = jwt.encode({'email': admin.email, 'role': 'ADMIN'}, env("JWT_SECRET_KEY"), algorithm="HS256")
+    token = jwt.encode({'email': admin.email, 'authorizationLevel': AUTHORIZATION_LEVELS['ADMIN']}, env("JWT_SECRET_KEY"), algorithm="HS256")
     # return token
     return Response({'message': 'Login Successful', 'token': token}, status=status.HTTP_200_OK)
 
