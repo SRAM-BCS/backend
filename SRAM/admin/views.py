@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from backend.models import Student, Admin, QRCodeTable, Batch, Course, Faculty, Attendance
-from backend.serializers import StudentSerializer, AttendanceSerializer
+from backend.serializers import StudentSerializer, AttendanceSerializer, BatchSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -112,7 +112,8 @@ def batch(request):
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
         newBatch = Batch(title=data["title"],code=data["code"])
         newBatch.save()
-        return Response({'message': 'New Batch Saved'}, status=status.HTTP_201_CREATED)
+        serializer = BatchSerializer(newBatch)
+        return Response({'message': 'New Batch Saved', 'data':serializer.data}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
         batches = Batch.objects.all()
         return Response({'message': 'All Batches','data':batches}, status=status.HTTP_200_OK)

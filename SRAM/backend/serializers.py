@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Student,Faculty,Course,Batch, Attendance
+from .models import Student,Faculty,Course,Batch, Attendance, QRCodeTable
 
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,9 +9,24 @@ class StudentSerializer(serializers.ModelSerializer):
 class BatchSerializer(serializers.ModelSerializer):
     class Meta:
         model = Batch
-        fields = ['name', 'course', 'faculty']        
+        fields = ['title', 'code']        
 
 class AttendanceSerializer(serializers.ModelSerializer):
     class Meta:
         model= Attendance
         fields = ['BCF_id', 'roll', 'date']
+        
+class QRCode(serializers.ModelSerializer):
+    class Meta:
+        model= QRCodeTable
+        fields = ['classRoom', 'qrCode']
+        
+class CourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = ['name', 'code']
+        
+class FacultySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Faculty
+        fields = ['name', 'email', 'profileImage', 'idImage', 'created', 'updated', 'isActive', 'requestStatus']                
