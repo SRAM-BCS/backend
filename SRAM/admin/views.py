@@ -62,6 +62,7 @@ def save_new_admin(request):
         
     #Save a new admin object
     newAdmin = Admin(email=data["email"],password=data['password'])
+    newAdmin.setPassword(data['password'])
     newAdmin.save()
     return Response({'message': 'New Admin Saved'}, status=status.HTTP_201_CREATED)
     

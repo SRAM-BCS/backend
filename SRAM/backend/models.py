@@ -120,6 +120,11 @@ class FacultyCodeStatus(models.Model):
     
 class Admin(models.Model):
     email = models.EmailField(default='')
-    password = models.CharField("Password", max_length=240, default='')
+    password = models.CharField("Password", max_length=240, default='', null=True, blank=True)
+    salt = models.CharField("Salt", default='')
     def __str__(self):
         return self.name
+    def setPassword(self, password):
+        self.password = bcrypt.hashpw(password.encode('utf8'), self.salt)
+    def checkPassword(self, password):
+        return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))
