@@ -16,7 +16,7 @@ class AttendanceSerializer(serializers.ModelSerializer):
         model= Attendance
         fields = ['BCF_id', 'roll', 'date']
         
-class QRCode(serializers.ModelSerializer):
+class QRCodeSerializer(serializers.ModelSerializer):
     class Meta:
         model= QRCodeTable
         fields = ['classRoom', 'qrCode']
