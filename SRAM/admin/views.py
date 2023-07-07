@@ -1,6 +1,7 @@
 from django.shortcuts import render
-from backend.models import Student, Admin, QRCodeTable, Batch, Course, Faculty, Attendance
-from backend.serializers import StudentSerializer, AttendanceSerializer, BatchSerializer, FacultySerializer, QRCodeSerializer
+from backend.models import Student, Admin, QRCodeTable, Batch, Course, Faculty, Attendance, OTPModel
+from backend.views import generate_otp
+from backend.serializers import StudentSerializer, AttendanceSerializer, BatchSerializer, FacultySerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -131,8 +132,58 @@ def course(request):
         return Response({'message': 'New Course Saved'}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
         courses = Course.objects.all()
-        return Response({'message': 'All Courses','data':courses}, status=status.HTTP_200_OK)    
-    
+        return Response({'message': 'All Courses','data':courses}, status=status.HTTP_200_OK)
+
+@api_view(['PUT'])
+def forgot_password(request):
+    data = request.data
+    if data["email"]=='' or data["newPassword"]=='' or data["otp"]=='':
+        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    admin = Admin.objects.get(email=data["email"])
+    if admin is None:
+        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    # get email from otpmodel
+    otpModel = OTPModel.objects.get(email=data["email"])
+    if otpModel is None:
+        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    # check if otp is valid
+    if otpModel.otp != data["otp"]:
+        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    if otpModel.expiry < datetime.now():
+        # generate new otp and send email then return
+        generate_otp(request)
+        return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
+    # delete otpModel
+    otpModel.delete()
+    # change password
+    admin.setPassword(data["newPassword"])
+    admin.save()
+    return Response({'message': 'Password Changed'}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def admin_login(request):
+    data = request.data
+    if data["email"]=='' or data["password"]=='':
+        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    admin = Admin.objects.get(email=data["email"])
+    if admin is None:
+        return Response({'message': 'No Admin Found'}, status=status.HTTP_400_BAD_REQUEST)
+    if not admin.checkPassword(data["password"]):
+        return Response({'message': 'Invalid Password'}, status=status.HTTP_400_BAD_REQUEST)
+    # set jwt token
+    token = jwt.encode({'email': admin.email, 'role': 'ADMIN'}, env("JWT_SECRET_KEY"), algorithm="HS256")
+    # return token
+    return Response({'message': 'Login Successful', 'token': token}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def get_all_admins():
+    admins = Admin.objects.all()
+    list_admins = []
+    for admin in admins:
+        list_admins.append(admin.email)
+
+    return Response({'message': 'All Admins', 'data': list_admins}, status=status.HTTP_200_OK)
+
 @api_view(['POST','GET'])
 def faculty(request):
     if request.method == 'POST':

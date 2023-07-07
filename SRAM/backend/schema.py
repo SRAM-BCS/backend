@@ -18,6 +18,7 @@ class RegisterRequest:
     idImage: str
 
 class ForgotPasswordRequest:
+    email: str
     newPassword: str
     otp: str
 

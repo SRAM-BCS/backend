@@ -234,6 +234,10 @@ def verify_otp(request):
         # check if otp is correct
         if otpModel.otp != int(otp):
             return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
+        if otpModel.expiry < datetime.now():
+            # generate new otp and send email then return
+            generate_otp(request)
+            return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
         # delete the OTPModel instance
         otpModel.delete()
         # create Verified Email Instance
@@ -241,24 +245,32 @@ def verify_otp(request):
         verifiedEmail.save()
         return Response({'message': 'Email Verified Successfully'}, status=status.HTTP_202_ACCEPTED)
 
-@api_view(['POST'])
+@api_view(['PUT'])
 def forgot_password(request):
-    request = auth(request, 'STUDENT')
     data: ForgotPasswordRequest = request.data
-    if not data.newPassword or not data.otp:
+    if not data.newPassword or not data.otp or not data.email:
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    # check email domain
+    if data.email.split('@')[1] != 'iiitm.ac.in':
+        return Response({'message': 'Invalid Email'}, status=status.HTTP_400_BAD_REQUEST)
+    
     # check if email already in OTPModel
-    if not OTPModel.objects.filter(email=request.tokenData['email']).exists():
+    if not OTPModel.objects.filter(email=data.email).exists():
         return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
     # delete the OTPModel instance
-    otpModel = OTPModel.objects.get(email=request.tokenData['email'])
+    otpModel = OTPModel.objects.get(email=data.email)
     # check if otp is correct
     if otpModel.otp != int(data.otp):
         return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
+    if otpModel.expiry < datetime.now():
+        # generate new otp and send email then return
+        generate_otp(request)
+        return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
+    
     # delete the OTPModel instance
     otpModel.delete()
     # get student
-    student = Student.objects.get(email=request.tokenData['email'])
+    student = Student.objects.get(email=data.email)
     # check if student exists
     if not student:
         return Response({'message': 'Student Not Found'}, status=status.HTTP_404_NOT_FOUND)
