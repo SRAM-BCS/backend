@@ -29,4 +29,4 @@ class CourseSerializer(serializers.ModelSerializer):
 class FacultySerializer(serializers.ModelSerializer):
     class Meta:
         model = Faculty
-        fields = ['name', 'email', 'profileImage', 'idImage', 'created', 'updated', 'isActive', 'requestStatus']                
+        fields = ['name', 'email', 'code','password','created', 'updated', 'isActive']                
