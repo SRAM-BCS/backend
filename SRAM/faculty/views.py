@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from backend.models import Faculty,FacultyCodeStatus
 from backend.serializers import StudentSerializer
+from SRAM.middleware import auth
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,17 +9,16 @@ from django.http import JsonResponse
 
 @api_view(['POST'])
 def facultyCode(request):
-    # get data from request
-    data:Student = request.data
-    # check if data is valid
-    if data['name'] == '' or data['email'] == '' or data['roll'] == '' or data['password'] == '':
-        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-    # check if roll number already exists
-    if Student.objects.filter(roll=data['roll']).exists():
-        return Response({'message': 'Roll Number already exists'}, status=status.HTTP_400_BAD_REQUEST)
-    # create new student object
-    student = Student(name=data['name'], email=data['email'], roll=data['roll'])
-    # save student object
-    student.save()
-    # return response
-    return Response({'message': 'Student Registered'}, status=status.HTTP_201_CREATED)
+   request = auth(request)
+   data = request.data
+   if data["facultyCode"]=='':
+      return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+   codeStatus = ToggleCodeStatus(data["facultyCode"],data["classRoom"])
+    
+   
+def ToggleCodeStatus(facultyCode,classRoom=""): #Helper Function to Toggle code status
+   codeStatus = FacultyCodeStatus.objects.get(faculty=Faculty.objects.get(code=data['facultyCode']))
+   codeStatus.status = not codeStatus.status
+   codeStatus.classRoom = classRoom
+   codeStatus.save()
+   return codeStatus   
