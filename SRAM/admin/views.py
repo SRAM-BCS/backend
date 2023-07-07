@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from backend.models import Student, Admin, QRCodeTable, Batch, Course, Faculty, Attendance, OTPModel
 from backend.views import generate_otp
-from backend.serializers import StudentSerializer, AttendanceSerializer, BatchSerializer, FacultySerializer
+from backend.serializers import StudentSerializer, AttendanceSerializer, BatchSerializer, FacultySerializer, QRCodeSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -98,6 +98,7 @@ def QR(request):
         if classRoom is None:
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
         qr = QRCodeTable.objects.get(classRoom=classRoom)
+        serializedData = QRCodeSerializer(qr)
         return Response({'message': 'QR Genrated','data':qr}, status=status.HTTP_200_OK)
     
 

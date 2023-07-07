@@ -11,8 +11,6 @@ urlpatterns = [
     #QR
     path('qr/generate', QR, name='generateQR'),
     path('qr', QR, name='getClassQR'),
-    path('forgot/password', forgot_password, name='ForgotPassword'),
-    path('get/', get_all_admins, name='GetAllAdmins'),
     
     #BATCH
     path('batch/new', batch, name='SaveNewBatch'),
@@ -26,6 +24,8 @@ urlpatterns = [
     path('faculty/new', faculty, name='SaveNewFaculty'),
     path('faculty/all', faculty, name='GetAllFaculties'),
 
+    path('forgot/password', forgot_password, name='ForgotPassword'),
+    path('get/', get_all_admins, name='GetAllAdmins'),
     # #CLASSROOM
     # path("classroom/new", classroom, name="SaveNewClassroom"),
  ]
