@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from backend.models import Student, Admin, QRCodeTable, Batch, Course, Faculty, Attendance
-from backend.serializers import StudentSerializer, AttendanceSerializer, BatchSerializer
+from backend.serializers import StudentSerializer, AttendanceSerializer, BatchSerializer, FacultySerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -12,6 +12,8 @@ import cloudinary.uploader
 import cloudinary.api
 import qrcode
 import base64
+import random
+import string
 from io import BytesIO
 import jwt
 from SRAM.settings import env
@@ -133,3 +135,41 @@ def course(request):
     elif request.method == 'GET':
         courses = Course.objects.all()
         return Response({'message': 'All Courses','data':courses}, status=status.HTTP_200_OK)    
+    
+@api_view(['POST','GET'])
+def faculty(request):
+    if request.method == 'POST':
+        # request = auth(request, 'ADMIN')
+        data = request.data
+        if data["name"]=='' or data["email"]=='':
+            return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+        newFaculty = Faculty(name=data["name"],email=data["email"])
+        newFaculty.code = generateCode(data["name"])
+        password = generatePassword()
+        newFaculty.setPassword(password)
+        newFaculty.save()
+        serializedData = FacultySerializer(newFaculty)
+        return Response({'message': 'New Faculty Saved','data':serializedData.data}, status=status.HTTP_201_CREATED)
+    elif request.method == 'GET':
+        faculties = Faculty.objects.filter(isActive=True)
+        serializedData = FacultySerializer(faculties, many=True)
+        return Response({'message': 'All Faculties','data':serializedData.data}, status=status.HTTP_200_OK)
+    
+    
+def generateCode(name):
+    code = ''
+    #code should be First character of each word in name
+    for word in name.split(' '):
+        code+=word[0]
+    matchingCodes = Faculty.objects.filter(code__startswith=code, isActive = True)
+    if len(matchingCodes) > 0:
+        code+='-'+str(len(matchingCodes)+1)
+    return code    
+
+def generatePassword(length=10):
+    special_char = random.choice(['@', '#', '$'])
+    digits = random.sample(string.digits, 2)
+    letters = random.sample(string.ascii_letters, 7)
+    password = special_char + digits[0] + digits[1] + ''.join(letters)
+    password = ''.join(random.sample(password, len(password)))  # Shuffle the characters randomly
+    return password
