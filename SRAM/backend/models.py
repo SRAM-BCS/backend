@@ -127,11 +127,8 @@ class Admin(models.Model):
     salt = models.CharField("Salt", default='Nothing')
     def __str__(self):
         return self.name
-    def setPassword(self, password, salt):
-        # self.password = bcrypt.hashpw(password.encode('utf8'), self.salt)
-        print(salt)
-        print(password)
-        self.salt = salt
-        # self.password = bcrypt.hashpw(password.encode('utf8'), self.salt)
+    def setPassword(self, password):
+        self.password = bcrypt.hashpw(password.encode('utf8'), self.salt)
+        
     def checkPassword(self, password):
         return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))

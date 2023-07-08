@@ -151,10 +151,12 @@ def forgot_password(request):
     # check if otp is valid
     if otpModel.otp != data["otp"]:
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-    if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
-        # generate new otp and send email then return
-        generate_otp(request)
-        return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
+    # if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
+    #     # generate new otp and send email then return
+    #     generate_otp(request)
+    #     return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
+    admin.salt = bcrypt.gensalt()
+    admin.setPassword(data["newPassword"])
     # change password
     # admin.save()
     # # delete otpModel
