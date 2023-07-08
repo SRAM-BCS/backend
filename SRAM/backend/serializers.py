@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Student,Faculty,Course,Batch, Attendance, QRCodeTable
+from .models import Student,Faculty,Course,Batch, Attendance, QRCodeTable, BatchCourseFaculty
 
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:

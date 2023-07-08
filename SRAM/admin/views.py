@@ -20,6 +20,7 @@ import jwt
 from SRAM.settings import env
 from SRAM.constants import AUTHORIZATION_LEVELS
 from SRAM.middleware import auth
+import pytz
 # Create your views here.
 
 @api_view(['GET'])
@@ -150,16 +151,14 @@ def forgot_password(request):
     # check if otp is valid
     if otpModel.otp != data["otp"]:
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-    if otpModel.expiry < datetime.now():
+    if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
         # generate new otp and send email then return
         generate_otp(request)
         return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
     # change password
-    admin.salt = bcrypt.gensalt()
-    admin.setPassword(data["newPassword"])
-    admin.save()
-    # delete otpModel
-    otpModel.delete()
+    # admin.save()
+    # # delete otpModel
+    # otpModel.delete()
     return Response({'message': 'Password Changed'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
@@ -178,7 +177,7 @@ def admin_login(request):
     return Response({'message': 'Login Successful', 'token': token}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-def get_all_admins():
+def get_all_admins(request):
     admins = Admin.objects.all()
     list_admins = []
     for admin in admins:

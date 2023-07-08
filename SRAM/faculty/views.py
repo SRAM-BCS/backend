@@ -13,7 +13,7 @@ import jwt
 from SRAM.settings import env
 from SRAM.constants import AUTHORIZATION_LEVELS
 import bcrypt
-
+import pytz
 
 
 
@@ -37,7 +37,7 @@ def forgotPassword(request):
    if not otpModel:
       return Response({'message': 'Invalid Email'}, status=status.HTTP_400_BAD_REQUEST)
    
-   if otpModel.expiry < datetime.now():
+   if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
       generate_otp(request)
       return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
 

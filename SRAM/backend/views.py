@@ -16,6 +16,7 @@ from SRAM.constants import AUTHORIZATION_LEVELS
 from SRAM.middleware import auth
 from random import randint
 from SRAM.utils import send_email, verify_user, convert_image_to_base64
+import pytz
 
 # Create your views here.
 @api_view(['POST'])
@@ -234,7 +235,7 @@ def verify_otp(request):
         # check if otp is correct
         if otpModel.otp != int(otp):
             return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
-        if otpModel.expiry < datetime.now():
+        if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
             # generate new otp and send email then return
             generate_otp(request)
             return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -262,7 +263,7 @@ def forgot_password(request):
     # check if otp is correct
     if otpModel.otp != int(data.otp):
         return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
-    if otpModel.expiry < datetime.now():
+    if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
         # generate new otp and send email then return
         generate_otp(request)
         return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
