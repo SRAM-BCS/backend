@@ -190,17 +190,18 @@ def get_all_admins(request):
 @api_view(['POST','GET'])
 def faculty(request):
     if request.method == 'POST':
-        request = auth(request, 'ADMIN')
+        # request = auth(request, 'ADMIN')
         data = request.data
         if data["name"]=='' or data["email"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-        newFaculty = Faculty(name=data["name"],email=data["email"])
+        newFaculty = Faculty(name=data["name"],email=data["email"].lower())
         newFaculty.code = generateCode(data["name"])
+        newFaculty.salt = bcrypt.gensalt()
         password = generatePassword()
         newFaculty.setPassword(password)
         newFaculty.save()
         serializedData = FacultySerializer(newFaculty)
-        return Response({'message': 'New Faculty Saved','data':serializedData.data}, status=status.HTTP_201_CREATED)
+        return Response({'message': 'New Faculty Saved','data':serializedData.data, 'password':password}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
         faculties = Faculty.objects.filter(isActive=True)
         serializedData = FacultySerializer(faculties, many=True)

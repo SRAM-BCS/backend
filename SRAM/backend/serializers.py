@@ -24,12 +24,12 @@ class QRCodeSerializer(serializers.ModelSerializer):
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
-        fields = ['__all__']
+        fields = ['name','code']
         
 class FacultySerializer(serializers.ModelSerializer):
     class Meta:
         model = Faculty
-        fields = ['name', 'email', 'code','password','created', 'updated', 'isActive']                
+        fields = ['name', 'email', 'code','password','isActive']                
 
 class BatchCourseFacultySerializer(serializers.ModelSerializer):
     class Meta:

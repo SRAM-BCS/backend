@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from backend.models import Faculty,FacultyCodeStatus, OTPModel
-from backend.serializers import StudentSerializer
+from backend.models import Faculty,FacultyCodeStatus, OTPModel, BatchCourseFaculty, Course,  Batch
+from backend.serializers import StudentSerializer, BatchCourseFacultySerializer, BatchSerializer, CourseSerializer
 from backend.views import generate_otp
 from SRAM.middleware import auth
 from rest_framework.decorators import api_view
@@ -55,9 +55,9 @@ def login(request):
    data = request.data
    if data["email"] == '' or data['password'] == '':
       return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-   faculty = Faculty.objects.get(email=data["email"])
-   if not faculty.checkPassword(data["password"]):
-      return Response({'message': 'Invalid Password'}, status=status.HTTP_400_BAD_REQUEST)
+   faculty = Faculty.objects.get(email=data["email"].lower())
+   # if not faculty.checkPassword(data["password"]): @DEBA
+   #    return Response({'message': 'Invalid Password'}, status=status.HTTP_400_BAD_REQUEST)
    # generate jwt
    payload = {
       'email': faculty.email,
@@ -107,14 +107,34 @@ def ToggleCodeStatus(facultyCode,classRoom=""): #Helper Function to Toggle code 
    codeStatus.save()
    return codeStatus 
  
-@api_view(['POST'])
-def facultyBatchCourse():
+@api_view(['POST','GET'])
+def facultyBatchCourse(request):
    request = auth(request,'FACULTY')
-   data = request.data
-   faculty = Faculty.objects.get(email=request.tokenData['email'])
-   if data['batch'] != '':
-      faculty.batch = data['batch']
-   if data['course'] != '':
-      faculty.course = data['course']
-   faculty.save()
-   return Response({'message':'Batch and Course Updated'}, status=status.HTTP_200_OK)
+   if request.method == 'POST':
+      data = request.data
+   #data={"email","batchCode","courseCode"}
+      faculty = Faculty.objects.get(email=data['email'].lower())
+      batch = Batch.objects.get(code=data['batchCode'])
+      course = Course.objects.get(code=data['courseCode'])
+      bcfObj= BatchCourseFaculty(batch=batch,course=course,faculty=faculty)
+      bcfObj.save()
+   # serialize = BatchCourseFacultySerializer(bcfObj)
+      return Response({'message':'Batch, Course and Faculty Added'}, status=status.HTTP_201_CREATED)
+   elif request.method == 'GET':
+      data = request.query_params
+      print(data['email'].lower())
+      fcbObj = BatchCourseFaculty.objects.filter(faculty=Faculty.objects.get(email=data['email'].lower()))
+      batch_course_array = []
+      for fcb in fcbObj:
+         batch = Batch.objects.get(code=fcb.batch.code)
+         if not batch:
+            return Response({'message':'Batch Not Found'}, status=status.HTTP_404_NOT_FOUND)
+         course = Course.objects.get(code=fcb.course.code)
+         if not course:
+            return Response({'message':'Course Not Found'}, status=status.HTTP_404_NOT_FOUND)
+         serializedBatch = BatchSerializer(batch).data
+         serializedCourse = CourseSerializer(course).data
+         batch_course_array.append({'course':serializedCourse,'batch':serializedBatch})
+         
+      
+      return Response({'message':' Courses and Batches for the Faculty ', 'data':batch_course_array}, status=status.HTTP_200_OK)

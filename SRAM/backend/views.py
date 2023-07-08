@@ -39,6 +39,7 @@ def register(request):
         return Response({'message': 'Roll Number already exists'}, status=status.HTTP_400_BAD_REQUEST)
     # create new student object
     student = Student(name=data['name'], email=data['email'], roll=data['roll'], password=data['password'], salt = bcrypt.gensalt(), batch=data['batch'])
+    student.salt = bcrypt.gensalt()
     # set password
     student.setPassword(data['password'])
     # get profileImage
