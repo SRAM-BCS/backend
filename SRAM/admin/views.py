@@ -26,7 +26,7 @@ from SRAM.utils import send_email
 # Create your views here.
 @api_view(['GET'])
 def pending_student_status(request):
-    request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
+    request = auth(request, 'ADMIN')
 
     limit = request.query_params.get('limit', None)
     offset = request.query_params.get('skip', None)
@@ -46,7 +46,7 @@ def pending_student_status(request):
 
 @api_view(['POST'])
 def save_student_status(request):
-    request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
+    request = auth(request,'ADMIN')
     data = request.data
     
     if data['roll'] == '' or data['statusNum'] == '':
@@ -62,16 +62,26 @@ def save_student_status(request):
 
 @api_view(['POST'])
 def save_new_admin(request):
-    request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
+    request = auth(request, 'ADMIN')
     print(request)
     data = request.data
-    if data["email"]=='' or data["password"]=='':
+    if data["email"]=='':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-        
+    
+    # Check if admin with email already exists
+    try:
+        admin = Admin.objects.get(email=data["email"])
+        return Response({'message': 'Admin with this email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+    except:
+        pass
+    # get count of admin objects
+    adminCount = Admin.objects.count()
     #Save a new admin object
-    newAdmin = Admin(email=data["email"],password=data['password'])
-    newAdmin.setPassword(data['password'])
+    password = generatePassword()
+    newAdmin = Admin(email=data["email"],password=password, id=adminCount+1)
+    newAdmin.setPassword(password, bcrypt.gensalt())
     newAdmin.save()
+    send_email(data['email'], f'Your SRAM Admin Account has been created. Your password is {password}', 'SRAM Admin Account Created')
     return Response({'message': 'New Admin Saved'}, status=status.HTTP_201_CREATED)
     
 
@@ -112,7 +122,7 @@ def QR(request):
 @api_view(['POST','GET'])
 def batch(request):
     if request.method == "POST":
-        request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
+        request = auth(request, 'ADMIN')
         data = request.data
         if data["title"]=='' or data["code"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -131,7 +141,7 @@ def batch(request):
 @api_view(['POST','GET'])
 def course(request): 
     if request.method == "POST":
-        request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
+        request = auth(request,'ADMIN')
         data = request.data
         if data["name"]=='' or data["code"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -201,7 +211,7 @@ def get_all_admins(request):
 @api_view(['POST','GET'])
 def faculty(request):
     if request.method == 'POST':
-        request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
+        request = auth(request,'ADMIN')
         data = request.data
         if data["name"]=='' or data["email"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
