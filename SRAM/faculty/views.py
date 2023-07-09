@@ -25,19 +25,24 @@ def facultyCode(request):
    if data["facultyCode"]=='':
       return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
    codeStatus = ToggleCodeStatus(data["facultyCode"],data["classRoom"])
-   return Response({'message': 'codeStatus changed to  '}, status=status.HTTP_200_OK)
+   return Response({'message': 'codeStatus changed to '+codeStatus.status}, status=status.HTTP_200_OK)
    
 @api_view(['PUT'])
 def forgotPassword(request):
    data = request.data
    if data["otp"] == '' or data["email"] == '' or data['password'] == '':
       return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-   faculty = Faculty.objects.get(email=data["email"])
-   if not faculty:
+   try:   
+      faculty = Faculty.objects.get(email=data["email"])
+   except Exception as e:  
+      print(str(e)) 
       return Response({'message': 'Invalid Email'}, status=status.HTTP_400_BAD_REQUEST)
-   otpModel = OTPModel.objects.get(email=data["email"])
-   if not otpModel:
-      return Response({'message': 'Invalid Email'}, status=status.HTTP_400_BAD_REQUEST)
+   
+   try:
+      otpModel = OTPModel.objects.get(email=data["email"])
+   except Exception as e:
+      print(str(e))
+      return Response({'message': 'Invalid Email. OTP not found'}, status=status.HTTP_400_BAD_REQUEST)
    
    if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
       generate_otp(request)
@@ -56,7 +61,11 @@ def login(request):
    data = request.data
    if data["email"] == '' or data['password'] == '':
       return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-   faculty = Faculty.objects.get(email=data["email"].lower())
+   try :   
+      faculty = Faculty.objects.get(email=data["email"].lower())
+   except Exception as e: 
+      print(str(e)) 
+      return Response({'message': 'Invalid Email'}, status=status.HTTP_400_BAD_REQUEST)
    if not faculty.checkPassword(data["password"]): 
       return Response({'message': 'Invalid Password'}, status=status.HTTP_400_BAD_REQUEST)
    # generate jwt
@@ -73,7 +82,11 @@ def login(request):
 @api_view(['GET'])
 def getFaculty(request):
    request = auth(request, True)
-   faculty = Faculty.objects.get(email=request.tokenData['email'])
+   try:
+    faculty = Faculty.objects.get(email=request.tokenData['email'])
+   except Exception as e: 
+         print(str(e))
+         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
    courses = []
    for course in faculty.courses:
       courses.append({
@@ -93,14 +106,22 @@ def getFaculty(request):
 
 @app.task
 def AutoFalseCodeStatus(facultyCode, classRoom=""):
-   codeStatus = FacultyCodeStatus.objects.get(faculty=Faculty.objects.get(code=facultyCode))
+   try:   
+      codeStatus = FacultyCodeStatus.objects.get(faculty=Faculty.objects.get(code=facultyCode))
+   except Exception as e: 
+         print(str(e))
+         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
    codeStatus.status = False
    codeStatus.classRoom = classRoom
    codeStatus.save()
    return codeStatus  
 
 def ToggleCodeStatus(facultyCode,classRoom=""): #Helper Function to Toggle code status
-   codeStatus = FacultyCodeStatus.objects.get(faculty=Faculty.objects.get(code=facultyCode))
+   try:   
+      codeStatus = FacultyCodeStatus.objects.get(faculty=Faculty.objects.get(code=facultyCode))
+   except Exception as e: 
+         print(str(e))
+         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
    codeStatus.status = not codeStatus.status
    codeStatus.classRoom = classRoom
    if codeStatus.status:
@@ -114,9 +135,13 @@ def facultyBatchCourse(request):
    if request.method == 'POST':
       data = request.data
    #data={"email","batchCode","courseCode"}
-      faculty = Faculty.objects.get(email=data['email'].lower())
-      batch = Batch.objects.get(code=data['batchCode'])
-      course = Course.objects.get(code=data['courseCode'])
+      try:
+         faculty = Faculty.objects.get(email=data['email'].lower())
+         batch = Batch.objects.get(code=data['batchCode'])
+         course = Course.objects.get(code=data['courseCode'])
+      except Exception as e: 
+         print(str(e))
+         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
       bcfObj= BatchCourseFaculty(batch=batch,course=course,faculty=faculty)
       bcfObj.save()
    # serialize = BatchCourseFacultySerializer(bcfObj)
@@ -127,9 +152,16 @@ def facultyBatchCourse(request):
       fcbObj = BatchCourseFaculty.objects.filter(faculty=Faculty.objects.get(email=data['email'].lower()))
       batch_course_array = []
       for fcb in fcbObj:
-         batch = Batch.objects.get(code=fcb.batch.code)
-         if not batch:
-            return Response({'message':'Batch Not Found'}, status=status.HTTP_404_NOT_FOUND)
+         try:
+            faculty = Faculty.objects.get(email=data['email'].lower())
+         except Exception as e: 
+            print(str(e))
+            return Response({'message': 'Invalid Data for Faculty'}, status=status.HTTP_400_BAD_REQUEST)   
+         try:
+            batch = Batch.objects.get(code=fcb.batch.code)
+         except Exception as e: 
+            print(str(e))
+            return Response({'message': 'Invalid Data for Batch'}, status=status.HTTP_400_BAD_REQUEST)
          course = Course.objects.get(code=fcb.course.code)
          if not course:
             return Response({'message':'Course Not Found'}, status=status.HTTP_404_NOT_FOUND)
@@ -145,13 +177,17 @@ def facultyBatchCourseAttendance(request):
    if request.method == 'POST':
       data = request.data
       print(data)
-      faculty = Faculty.objects.get(email=data['email'].lower())
-      batch = Batch.objects.get(code=data['batchCode'])
-      course = Course.objects.get(code=data['courseCode'])
+      try:   
+         faculty = Faculty.objects.get(email=data['email'].lower())
+         batch = Batch.objects.get(code=data['batchCode'])
+         course = Course.objects.get(code=data['courseCode'])
+      except Exception as e: 
+         print(str(e))
+         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
       bcfObj= BatchCourseFaculty.objects.get(batch=batch,course=course,faculty=faculty)
-      attendanceObj = Attendance.objects.get(batchCourseFaculty=bcfObj)
-      attendanceObj.attendance = data['attendance']
-      attendanceObj.save()
+      # attendanceObj = Attendance.objects.get(batchCourseFaculty=bcfObj)
+      # attendanceObj.attendance = data['attendance']
+      # attendanceObj.save()
       return Response({'message':'Attendance Updated'}, status=status.HTTP_200_OK)
    else:
       return Response({'message':'Invalid Request'}, status=status.HTTP_400_BAD_REQUEST)   
