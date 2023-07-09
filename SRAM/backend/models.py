@@ -112,7 +112,7 @@ class QRCodeTable(models.Model):
 
 class FacultyCodeStatus(models.Model):
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, default=None)
-    classRoom = models.ForeignKey(QRCodeTable, on_delete=models.CASCADE, default=None)
+    classRoom = models.CharField("ClassRoom", max_length=240, default='')
     status = models.BooleanField(default=False)
     lastActivated = models.DateField("LastActivated", default=datetime.now())
     created = models.DateField( default=datetime.now())

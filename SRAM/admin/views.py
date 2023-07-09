@@ -141,7 +141,9 @@ def batch(request):
 @api_view(['POST','GET'])
 def course(request): 
     if request.method == "POST":
-        request = auth(request,'ADMIN')
+        authorized,request = auth(request,'ADMIN')
+        if not authorized : 
+            return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         if data["name"]=='' or data["code"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -211,7 +213,7 @@ def get_all_admins(request):
 @api_view(['POST','GET'])
 def faculty(request):
     if request.method == 'POST':
-        authorized,request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
+        authorized,request = auth(request,'ADMIN')
         if not authorized : 
             return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
