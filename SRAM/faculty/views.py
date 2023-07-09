@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from backend.models import Faculty,FacultyCodeStatus, OTPModel, BatchCourseFaculty, Course,  Batch
+from django.db.models import Count, F, FloatField
+from backend.models import Faculty,FacultyCodeStatus, OTPModel, BatchCourseFaculty, Course,  Batch, Attendance
 from backend.serializers import StudentSerializer, BatchCourseFacultySerializer, BatchSerializer, CourseSerializer
 from backend.views import generate_otp
 from SRAM.middleware import auth
@@ -24,6 +25,7 @@ def facultyCode(request):
    if data["facultyCode"]=='':
       return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
    codeStatus = ToggleCodeStatus(data["facultyCode"],data["classRoom"])
+   return Response({'message': 'codeStatus changed to  '}, status=status.HTTP_200_OK)
    
 @api_view(['POST'])
 def forgotPassword(request):
@@ -135,6 +137,58 @@ def facultyBatchCourse(request):
          serializedBatch = BatchSerializer(batch).data
          serializedCourse = CourseSerializer(course).data
          batch_course_array.append({'course':serializedCourse,'batch':serializedBatch})
-         
-      
+             
       return Response({'message':' Courses and Batches for the Faculty ', 'data':batch_course_array}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def facultyBatchCourseAttendance(request):
+   request = auth(request,'FACULTY')
+   if request.method == 'POST':
+      data = request.data
+      print(data)
+      faculty = Faculty.objects.get(email=data['email'].lower())
+      batch = Batch.objects.get(code=data['batchCode'])
+      course = Course.objects.get(code=data['courseCode'])
+      bcfObj= BatchCourseFaculty.objects.get(batch=batch,course=course,faculty=faculty)
+      attendanceObj = Attendance.objects.get(batchCourseFaculty=bcfObj)
+      attendanceObj.attendance = data['attendance']
+      attendanceObj.save()
+      return Response({'message':'Attendance Updated'}, status=status.HTTP_200_OK)
+   else:
+      return Response({'message':'Invalid Request'}, status=status.HTTP_400_BAD_REQUEST)   
+   
+   #Attendance report for  Batch x Course date wise
+def get_attendance_report_by_date(course, batch): #course and batch objects
+   attendance_report = Attendance.objects.filter(
+        BCF_id__course=course,
+        BCF_id__batch=batch
+    ).order_by('date', 'roll__roll')
+   attendance_by_date = {}
+
+# Loop through the attendance records
+   for attendance in attendance_report:
+      date = attendance.date
+
+    # Check if the date is already a key in the dictionary
+      if date in attendance_by_date:
+        # Append the attendance record to the existing array
+         attendance_by_date[date].append(attendance)
+      else:
+        # Create a new array with the attendance record
+        attendance_by_date[date] = [attendance]
+
+   return attendance_by_date  
+
+def attendanceStatistics(course,batch): #In terms of percentage
+    attendance_report = Attendance.objects.filter(
+        BCF_id__course=course,
+        BCF_id__batch=batch
+    ).values('roll__roll').annotate(
+        total_attendance=Count('id'),
+        total_classes=Count('date', distinct=True),
+        attendance_percentage=F('total_attendance') * 100.0 / F('total_classes'),
+    ).order_by('roll__roll')
+
+    return attendance_report
+ 
+   
