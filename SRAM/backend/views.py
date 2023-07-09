@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus, OTPModel, VerifiedEmails, QRCodeTable
-from .serializers import StudentSerializer
+from .serializers import StudentSerializer, BatchSerializer, CourseSerializer, FacultySerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -307,6 +307,30 @@ def face_verification(request):
     else:
         return Response({'message': 'Not Verified', 'status':False}, status=status.HTTP_401_UNAUTHORIZED)
     
-
+@api_view(['GET'])
+def course(request):
+    request = auth(request, 'STUDENT')
+    # get student by email
+    student = Student.objects.get(email=request.tokenData['email'])
+    # check if exists
+    if not student:
+        return Response({'message': 'Student Not Found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    batch = student.batch_id
+    
+    # get all the courses
+    bcfObjs = BatchCourseFaculty.objects.filter(batch=Batch.objects.get(id=batch))
+    course_faculty_array = []
+    for fcb in bcfObjs:
+        faculty = Faculty.objects.get(code=fcb.faculty.code)
+        if not batch:
+           return Response({'message':'Faculty Not Found'}, status=status.HTTP_404_NOT_FOUND)
+        course = Course.objects.get(code=fcb.course.code)
+        if not course:
+           return Response({'message':'Course Not Found'}, status=status.HTTP_404_NOT_FOUND)
+        serializedFaculty = FacultySerializer(batch).data
+        serializedCourse = CourseSerializer(course).data
+        course_faculty_array.append({'course':serializedCourse,'faculty':serializedFaculty})
+    return Response({'message': 'Student Courses', 'data': course_faculty_array}, status=status.HTTP_200_OK)        
 
 
