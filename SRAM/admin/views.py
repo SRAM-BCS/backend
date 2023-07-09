@@ -21,8 +21,9 @@ from SRAM.settings import env
 from SRAM.constants import AUTHORIZATION_LEVELS
 from SRAM.middleware import auth
 import pytz
-# Create your views here.
+from SRAM.utils import send_email
 
+# Create your views here.
 @api_view(['GET'])
 def pending_student_status(request):
     request = auth(request, 'ADMIN')
@@ -50,10 +51,12 @@ def save_student_status(request):
     
     if data['roll'] == '' or data['statusNum'] == '':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    student = Student.objects.get(roll=data['roll'])
-    student.requestStatus = Student.OptionEnum[f"OPTION{data['statusNum']}"]
-    student.save()
+    try:
+        student = Student.objects.get(roll=data['roll'])
+        student.requestStatus = Student.OptionEnum[f"OPTION{data['statusNum']}"]
+        student.save()
+    except:
+        return Response({'message': 'Unable to Find Studen'}, status=status.HTTP_400_BAD_REQUEST)
     
     return Response({'message': 'Student Status set to'+Student.OptionEnum[f"OPTION{data['statusNum']}"]}, status=status.HTTP_201_CREATED)
 
@@ -117,9 +120,11 @@ def batch(request):
         serializer = BatchSerializer(newBatch)
         return Response({'message': 'New Batch Saved', 'data':serializer.data}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
-        batches = Batch.objects.all()
-        return Response({'message': 'All Batches','data':batches}, status=status.HTTP_200_OK)
-        
+        try:
+            batches = Batch.objects.all()
+            return Response({'message': 'All Batches','data':batches}, status=status.HTTP_200_OK)
+        except:
+            return Response({'message': "No Batches Found"}, status=status.HTTP_400_BAD_REQUEST)
     return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST','GET'])
@@ -133,24 +138,29 @@ def course(request):
         newCourse.save()
         return Response({'message': 'New Course Saved'}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
-        courses = Course.objects.all()
-        return Response({'message': 'All Courses','data':courses}, status=status.HTTP_200_OK)
-
+        try:
+            courses = Course.objects.all()
+            return Response({'message': 'All Courses','data':courses}, status=status.HTTP_200_OK)
+        except:
+            return Response({'message': "No Courses Found"}, status=status.HTTP_400_BAD_REQUEST)
+        
 @api_view(['PUT'])
 def forgot_password(request):
     data = request.data
     if data["email"]=='' or data["newPassword"]=='' or data["otp"]=='':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-    admin = Admin.objects.get(email=data["email"])
-    if admin is None:
-        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-    # get email from otpmodel
-    otpModel = OTPModel.objects.get(email=data["email"])
-    if otpModel is None:
-        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-    # check if otp is valid
-    if otpModel.otp != data["otp"]:
-        return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        admin = Admin.objects.get(email=data["email"])
+    except:
+        return Response({'message': 'No Admin Found With The Email'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        # get email from otpmodel
+        otpModel = OTPModel.objects.get(email=data["email"])
+        # check if otp is valid
+        if otpModel.otp != data["otp"]:
+            return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
+    except:
+        return Response({'message': 'Please Use Correct Email'}, status=status.HTTP_400_BAD_REQUEST)
     # if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
     #     # generate new otp and send email then return
     #     generate_otp(request)
@@ -167,15 +177,16 @@ def admin_login(request):
     data = request.data
     if data["email"]=='' or data["password"]=='':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-    admin = Admin.objects.get(email=data["email"])
-    if admin is None:
+    try:
+        admin = Admin.objects.get(email=data["email"])
+        if not admin.checkPassword(data["password"]):
+            return Response({'message': 'Invalid Password'}, status=status.HTTP_400_BAD_REQUEST)
+        # set jwt token
+        token = jwt.encode({'email': admin.email, 'authorizationLevel': AUTHORIZATION_LEVELS['ADMIN']}, env("JWT_SECRET_KEY"), algorithm="HS256")
+        # return token
+        return Response({'message': 'Login Successful', 'token': token}, status=status.HTTP_200_OK)
+    except:
         return Response({'message': 'No Admin Found'}, status=status.HTTP_400_BAD_REQUEST)
-    if not admin.checkPassword(data["password"]):
-        return Response({'message': 'Invalid Password'}, status=status.HTTP_400_BAD_REQUEST)
-    # set jwt token
-    token = jwt.encode({'email': admin.email, 'authorizationLevel': AUTHORIZATION_LEVELS['ADMIN']}, env("JWT_SECRET_KEY"), algorithm="HS256")
-    # return token
-    return Response({'message': 'Login Successful', 'token': token}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def get_all_admins(request):
@@ -202,9 +213,12 @@ def faculty(request):
         serializedData = FacultySerializer(newFaculty)
         return Response({'message': 'New Faculty Saved','data':serializedData.data, 'password':password}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
-        faculties = Faculty.objects.filter(isActive=True)
-        serializedData = FacultySerializer(faculties, many=True)
-        return Response({'message': 'All Faculties','data':serializedData.data}, status=status.HTTP_200_OK)
+        try:
+            faculties = Faculty.objects.filter(isActive=True)
+            serializedData = FacultySerializer(faculties, many=True)
+            return Response({'message': 'All Faculties','data':serializedData.data}, status=status.HTTP_200_OK)
+        except:
+            return Response({'message': "No Faculties Found"}, status=status.HTTP_400_BAD_REQUEST)
     
     
 def generateCode(name):
