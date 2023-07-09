@@ -29,7 +29,7 @@ class CourseSerializer(serializers.ModelSerializer):
 class FacultySerializer(serializers.ModelSerializer):
     class Meta:
         model = Faculty
-        fields = ['name', 'email', 'code','password','isActive']                
+        fields = ['name', 'email', 'code','isActive']                
 
 class BatchCourseFacultySerializer(serializers.ModelSerializer):
     class Meta:

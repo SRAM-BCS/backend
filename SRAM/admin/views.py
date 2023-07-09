@@ -26,7 +26,7 @@ from SRAM.utils import send_email
 # Create your views here.
 @api_view(['GET'])
 def pending_student_status(request):
-    request = auth(request, 'ADMIN')
+    request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
 
     limit = request.query_params.get('limit', None)
     offset = request.query_params.get('skip', None)
@@ -46,7 +46,7 @@ def pending_student_status(request):
 
 @api_view(['POST'])
 def save_student_status(request):
-    request = auth(request, 'ADMIN')
+    request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
     data = request.data
     
     if data['roll'] == '' or data['statusNum'] == '':
@@ -62,7 +62,8 @@ def save_student_status(request):
 
 @api_view(['POST'])
 def save_new_admin(request):
-    request = auth(request, 'ADMIN')
+    request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
+    print(request)
     data = request.data
     if data["email"]=='' or data["password"]=='':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -111,7 +112,7 @@ def QR(request):
 @api_view(['POST','GET'])
 def batch(request):
     if request.method == "POST":
-        request = auth(request, 'ADMIN')
+        request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
         data = request.data
         if data["title"]=='' or data["code"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -130,7 +131,7 @@ def batch(request):
 @api_view(['POST','GET'])
 def course(request): 
     if request.method == "POST":
-        request = auth(request, 'ADMIN')
+        request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
         data = request.data
         if data["name"]=='' or data["code"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -200,18 +201,18 @@ def get_all_admins(request):
 @api_view(['POST','GET'])
 def faculty(request):
     if request.method == 'POST':
-        # request = auth(request, 'ADMIN')
+        request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
         data = request.data
         if data["name"]=='' or data["email"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
         newFaculty = Faculty(name=data["name"],email=data["email"].lower())
         newFaculty.code = generateCode(data["name"])
-        newFaculty.salt = bcrypt.gensalt()
         password = generatePassword()
-        newFaculty.setPassword(password)
+        newFaculty.setPassword(password, bcrypt.gensalt())
         newFaculty.save()
+        send_email(data["email"], "New Faculty Account", "Your Account Has Been Created, Your Password Is: "+password)
         serializedData = FacultySerializer(newFaculty)
-        return Response({'message': 'New Faculty Saved','data':serializedData.data, 'password':password}, status=status.HTTP_201_CREATED)
+        return Response({'message': 'New Faculty Saved','data':serializedData.data}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
         try:
             faculties = Faculty.objects.filter(isActive=True)

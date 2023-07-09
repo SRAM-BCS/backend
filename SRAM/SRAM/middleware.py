@@ -10,6 +10,7 @@ def auth(request,authLevel, *args, **kwargs):
 
         if token:
             decoded_payload = decode_jwt_token(token)
+            print(decoded_payload)
             if decoded_payload:
                 # Set user details from the JWT payload
                 request.tokenData = decoded_payload
