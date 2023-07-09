@@ -6,7 +6,7 @@ from SRAM.utils import decode_jwt_token
 def auth(request,authLevel, *args, **kwargs):
         token = request.headers.get('Authorization')
         if not token :
-            return HttpResponseForbidden('Unauthorized')
+            return False,None
 
         if token:
             decoded_payload = decode_jwt_token(token)
@@ -15,7 +15,7 @@ def auth(request,authLevel, *args, **kwargs):
                 # Set user details from the JWT payload
                 request.tokenData = decoded_payload
             else:
-                return HttpResponseForbidden('Invalid token')
+                return False,None
         if not request.tokenData or request.tokenData.get('authorizationLevel') < AUTHORIZATION_LEVELS[authLevel]:
             return HttpResponseForbidden('You are not authorized to access this page.')
-        return request
+        return True,request
