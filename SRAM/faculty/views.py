@@ -27,7 +27,7 @@ def facultyCode(request):
    codeStatus = ToggleCodeStatus(data["facultyCode"],data["classRoom"])
    return Response({'message': 'codeStatus changed to  '}, status=status.HTTP_200_OK)
    
-@api_view(['POST'])
+@api_view(['PUT'])
 def forgotPassword(request):
    data = request.data
    if data["otp"] == '' or data["email"] == '' or data['password'] == '':
