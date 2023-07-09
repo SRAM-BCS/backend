@@ -19,13 +19,13 @@ class Student(models.Model):
     created = models.DateField( default=datetime.now())
     updated= models.DateField( default=datetime.now())
     isActive = models.BooleanField(default=False)
-    salt = models.CharField("Salt", default='')
     def __str__(self):
         return self.name
-    def setPassword(self, password):
-        self.password = bcrypt.hashpw(password.encode('utf8'), self.salt)
+    def setPassword(self, password, salt):
+        self.password = bcrypt.hashpw(password.encode('utf8'), salt).decode('utf8')
+        
     def checkPassword(self, password):
-        return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))
+        return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8')) 
 
 class OTPModel(models.Model):
     email = models.EmailField(default='')
@@ -49,13 +49,13 @@ class Faculty(models.Model):
     code = models.CharField("Code", max_length=240, primary_key=True)
     courses = models.ManyToManyField('Course', through='BatchCourseFaculty', default=[])
     isActive = models.BooleanField(default=False)
-    salt = models.CharField("Salt", default='')
     def __str__(self):
         return self.name    
-    def setPassword(self, password):
-        self.password = bcrypt.hashpw(password.encode('utf8'), self.salt)
+    def setPassword(self, password, salt):
+        self.password = bcrypt.hashpw(password.encode('utf8'), salt).decode('utf8')
+        
     def checkPassword(self, password):
-        return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))
+        return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8')) 
 
 class Batch(models.Model):
     title = models.CharField("Title", max_length=240, default='')
@@ -124,11 +124,10 @@ class FacultyCodeStatus(models.Model):
 class Admin(models.Model):
     email = models.EmailField(default='')
     password = models.CharField("Password", max_length=240, default='', null=True, blank=True)
-    salt = models.CharField("Salt", default='')
     def __str__(self):
         return self.name
-    def setPassword(self, password):
-        self.password = bcrypt.hashpw(password.encode('utf8'), self.salt)
+    def setPassword(self, password, salt):
+        self.password = bcrypt.hashpw(password.encode('utf8'), salt).decode('utf8')
         
     def checkPassword(self, password):
-        return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))
+        return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))  

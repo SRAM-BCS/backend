@@ -95,7 +95,9 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+]
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

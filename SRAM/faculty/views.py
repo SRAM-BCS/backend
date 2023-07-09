@@ -44,8 +44,7 @@ def forgotPassword(request):
       return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
 
    if otpModel.otp == data["otp"]:
-      faculty.salt = bcrypt.gensalt()
-      faculty.setPassword(data['password'])
+      faculty.setPassword(data['password'], bcrypt.gensalt())
       faculty.save()
       otpModel.delete()
       return Response({'message': 'Password Changed'}, status=status.HTTP_200_OK)
@@ -58,8 +57,8 @@ def login(request):
    if data["email"] == '' or data['password'] == '':
       return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
    faculty = Faculty.objects.get(email=data["email"].lower())
-   # if not faculty.checkPassword(data["password"]): @DEBA
-   #    return Response({'message': 'Invalid Password'}, status=status.HTTP_400_BAD_REQUEST)
+   if not faculty.checkPassword(data["password"]): 
+      return Response({'message': 'Invalid Password'}, status=status.HTTP_400_BAD_REQUEST)
    # generate jwt
    payload = {
       'email': faculty.email,

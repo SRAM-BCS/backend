@@ -155,12 +155,11 @@ def forgot_password(request):
     #     # generate new otp and send email then return
     #     generate_otp(request)
     #     return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
-    admin.salt = bcrypt.gensalt()
-    admin.setPassword(data["newPassword"])
+    admin.setPassword(data["newPassword"], bcrypt.gensalt())
     # change password
-    # admin.save()
+    admin.save()
     # # delete otpModel
-    # otpModel.delete()
+    otpModel.delete()
     return Response({'message': 'Password Changed'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])

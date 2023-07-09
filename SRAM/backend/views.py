@@ -39,9 +39,8 @@ def register(request):
         return Response({'message': 'Roll Number already exists'}, status=status.HTTP_400_BAD_REQUEST)
     # create new student object
     student = Student(name=data['name'], email=data['email'], roll=data['roll'], password=data['password'], salt = bcrypt.gensalt(), batch=data['batch'])
-    student.salt = bcrypt.gensalt()
     # set password
-    student.setPassword(data['password'])
+    student.setPassword(data['password'], bcrypt.gensalt())
     # get profileImage
     profileImage = request.FILES.get('profileImage', None)
     # upload profileImage to cloudinary
@@ -264,10 +263,10 @@ def forgot_password(request):
     # check if otp is correct
     if otpModel.otp != int(data.otp):
         return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
-    if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
-        # generate new otp and send email then return
-        generate_otp(request)
-        return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
+    # if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
+    #     # generate new otp and send email then return
+    #     generate_otp(request)
+    #     return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
     
     # delete the OTPModel instance
     # get student
@@ -276,7 +275,7 @@ def forgot_password(request):
     if not student:
         return Response({'message': 'Student Not Found'}, status=status.HTTP_404_NOT_FOUND)
     # set new password
-    student.setPassword(data.newPassword)
+    student.setPassword(data.newPassword, bcrypt.gensalt())
     # save student
     student.save()
     # delete otp from model
