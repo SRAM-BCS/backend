@@ -18,4 +18,6 @@ def auth(request,authLevel, *args, **kwargs):
                 return False,None
         if not request.tokenData or request.tokenData.get('authorizationLevel') < AUTHORIZATION_LEVELS[authLevel]:
             return HttpResponseForbidden('You are not authorized to access this page.')
+        if request.tokenData.get('isActive') == False:
+            return False,None
         return True,request

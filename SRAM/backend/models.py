@@ -124,6 +124,7 @@ class FacultyCodeStatus(models.Model):
 class Admin(models.Model):
     email = models.EmailField(default='')
     password = models.CharField("Password", max_length=240, default='', null=True, blank=True)
+    isActive = models.BooleanField(default=False)
     def __str__(self):
         return self.name
     def setPassword(self, password, salt):

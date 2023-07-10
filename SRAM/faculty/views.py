@@ -79,7 +79,8 @@ def login(request):
    payload = {
       'email': faculty.email,
       'name': faculty.name,
-      'authorizationLevel':AUTHORIZATION_LEVELS['FACULTY']
+      'authorizationLevel':AUTHORIZATION_LEVELS['FACULTY'],
+      'isActive':faculty.isActive,
    }
    token = jwt.encode(payload, env("JWT_SECRET_KEY"), algorithm='HS256')
    return Response({'message':'Logged in Successfully', 'token': token}, status=status.HTTP_200_OK)
