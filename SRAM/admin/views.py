@@ -97,7 +97,9 @@ def save_new_admin(request):
 @api_view(['POST','GET'])
 def QR(request):
     if(request.method=='POST'):
-        request = auth(request, 'ADMIN')
+        authorized,request = auth(request, 'ADMIN')
+        if not authorized :
+            return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         if(data["classRoom"]==''):
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)

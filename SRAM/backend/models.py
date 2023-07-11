@@ -94,6 +94,7 @@ class BatchCourseFaculty(models.Model):
 class Attendance(models.Model):
     BCF_id = models.ForeignKey(BatchCourseFaculty, on_delete=models.CASCADE, default=None)
     roll = models.ForeignKey(Student, on_delete=models.CASCADE, default=None)
+    # roll = models.ForeignKey(Student, to_field='roll', on_delete=models.CASCADE, default=None)
     date = models.DateField( default=datetime.today())
     classRoom= models.ForeignKey("QRCodeTable", on_delete=models.CASCADE, default=None)
     created = models.DateField( default=datetime.now())
