@@ -105,7 +105,10 @@ def login(request):
 
 @api_view(['GET'])
 def student(request):
-    request = auth(request, 'FACULTY')
+    authorized,request = auth(request,'STUDENT')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+
     # fetch all student data
     students = Student.objects.all()
     # serialize data
@@ -118,7 +121,10 @@ def student(request):
 @api_view(['GET'])
 def student_with_email(request):
     # fetch student data
-    request = auth(request, 'STUDENT')
+    authorized,request = auth(request,'STUDENT')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
         student = Student.objects.get(email=request.tokenData['email'])
         # serialize data
@@ -180,7 +186,10 @@ def mark_attendance(request):
 
 @api_view(['GET'])
 def get_student_attendance(request):
-    request = auth(request, 'STUDENT')
+    authorized,request = auth(request,'STUDENT')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
         # get student by email
         student = Student.objects.get(email=request.tokenData['email'])
@@ -295,7 +304,10 @@ def forgot_password(request):
 # TODO: Once tested, remove the route and make it an internal function which will be used in the mark_attendance
 @api_view(['POST'])
 def face_verification(request):
-    request = auth(request, 'STUDENT')
+    authorized,request = auth(request,'STUDENT')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
         # get student by email
         student = Student.objects.get(email=request.tokenData['email'])
@@ -317,24 +329,28 @@ def face_verification(request):
     
 @api_view(['GET'])
 def course(request):
-    request = auth(request, 'STUDENT')
+    authorized,request = auth(request,'STUDENT')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
         # get student by email
         student = Student.objects.get(email=request.tokenData['email'])
     except:
         return Response({'message': 'Student Not Found'}, status=status.HTTP_400_BAD_REQUEST)
     
-    batch = student.batch_id
+    batch = student.batch
     
     # get all the courses
-    bcfObjs = BatchCourseFaculty.objects.filter(batch=Batch.objects.get(id=batch))
+    bcfObjs = BatchCourseFaculty.objects.filter(batch=batch)
     course_faculty_array = []
     for fcb in bcfObjs:
         try:
             faculty = Faculty.objects.get(code=fcb.faculty.code)
+            course = Course.objects.get(code=fcb.course.code)
         except:
             return Response({'message':'Faculty or Course Not Found'}, status=status.HTTP_400_BAD_REQUEST)
-        serializedFaculty = FacultySerializer(batch).data
+        serializedFaculty = FacultySerializer(faculty).data
         serializedCourse = CourseSerializer(course).data
         course_faculty_array.append({'course':serializedCourse,'faculty':serializedFaculty})
     return Response({'message': 'Student Courses', 'data': course_faculty_array}, status=status.HTTP_200_OK)        
