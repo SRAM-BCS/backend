@@ -2,3 +2,4 @@ venv
 README.md
 LICENSE
 __pycache__
+.env
