@@ -26,14 +26,15 @@ from SRAM.utils import send_email
 # Create your views here.
 @api_view(['GET'])
 def pending_student_status(request):
-    authorized,request = auth(request, 'ADMIN')
+    authorized,request = auth(request,'ADMIN')
     if not authorized : 
-        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+      return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+   
 
     limit = request.query_params.get('limit', None)
     offset = request.query_params.get('skip', None)
         
-    pending_students = Student.objects.filter(requestStatus=Student.OptionEnum.OPTION2).order_by('-id')
+    pending_students = Student.objects.filter(requestStatus=Student.OptionEnum.OPTION2).order_by('-updated')
         
     if limit is not None:
             pending_students = pending_students[:int(limit)]
@@ -48,9 +49,10 @@ def pending_student_status(request):
 
 @api_view(['POST'])
 def save_student_status(request):
-    authorized,request = auth(request, 'ADMIN')
+    authorized,request = auth(request,'ADMIN')
     if not authorized : 
-        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+      return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+   
     data = request.data
     
     if data['roll'] == '' or data['statusNum'] == '':
@@ -58,9 +60,11 @@ def save_student_status(request):
     try:
         student = Student.objects.get(roll=data['roll'])
         student.requestStatus = Student.OptionEnum[f"OPTION{data['statusNum']}"]
+        if data['statusNum'] == '1':
+            student.isActive = True
         student.save()
     except:
-        return Response({'message': 'Unable to Find Studen'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message': 'Unable to Find Student'}, status=status.HTTP_400_BAD_REQUEST)
     
     return Response({'message': 'Student Status set to'+Student.OptionEnum[f"OPTION{data['statusNum']}"]}, status=status.HTTP_201_CREATED)
 
@@ -86,6 +90,7 @@ def save_new_admin(request):
     password = generatePassword()
     newAdmin = Admin(email=data["email"],password=password, id=adminCount+1)
     newAdmin.setPassword(password, bcrypt.gensalt())
+    newAdmin.isActive = True
     newAdmin.save()
     send_email(data['email'], f'Your SRAM Admin Account has been created. Your password is {password}', 'SRAM Admin Account Created')
     return Response({'message': 'New Admin Saved'}, status=status.HTTP_201_CREATED)
@@ -95,7 +100,7 @@ def save_new_admin(request):
 def QR(request):
     if(request.method=='POST'):
         authorized,request = auth(request, 'ADMIN')
-        if not authorized : 
+        if not authorized :
             return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         if(data["classRoom"]==''):
@@ -205,7 +210,7 @@ def admin_login(request):
         if not admin.checkPassword(data["password"]):
             return Response({'message': 'Invalid Password'}, status=status.HTTP_400_BAD_REQUEST)
         # set jwt token
-        token = jwt.encode({'email': admin.email, 'authorizationLevel': AUTHORIZATION_LEVELS['ADMIN']}, env("JWT_SECRET_KEY"), algorithm="HS256")
+        token = jwt.encode({'email': admin.email, 'authorizationLevel': AUTHORIZATION_LEVELS['ADMIN'], 'isActive':admin.isActive}, env("JWT_SECRET_KEY"), algorithm="HS256")
         # return token
         return Response({'message': 'Login Successful', 'token': token}, status=status.HTTP_200_OK)
     except:
@@ -233,6 +238,7 @@ def faculty(request):
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
         newFaculty = Faculty(name=data["name"],email=data["email"].lower())
         newFaculty.code = generateCode(data["name"])
+        newFaculty.isActive = True
         password = generatePassword()
         newFaculty.setPassword(password, bcrypt.gensalt())
         newFaculty.save()

@@ -73,7 +73,8 @@ def register(request):
 
 @api_view(['POST'])
 def login(request):
-    data:LoginRequest = request.data
+    data = request.data
+    data = LoginRequest(data['email'], data['password'])
     # check if data is valid
     if data.email == '' or data.password == '':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -95,12 +96,12 @@ def login(request):
     serializer = StudentSerializer(student)
     # create jwt token
     refresh = jwt.encode({
-        'name': serializer.data.name,
-        'email': serializer.data.email,
-        'roll': serializer.data.roll,
-        'batch': serializer.data.batch,
+        'name': serializer.data["name"],
+        'email': serializer.data["email"],
+        'roll': serializer.data["roll"],
+        'batch': serializer.data["batch"],
         'authorizationLevel': AUTHORIZATION_LEVELS['STUDENT'],
-        'isActive': serializer.data.isActive,
+        'isActive': serializer.data["isActive"],
         'exp': datetime.utcnow() + timedelta(days=1)
     }, env("JWT_SECRET_KEY"), algorithm="HS256")
     # return response
@@ -109,9 +110,10 @@ def login(request):
 
 @api_view(['GET'])
 def student(request):
-    authorized,request = auth(request, 'FACULTY')
+    authorized,request = auth(request,'STUDENT')
     if not authorized : 
         return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+
     # fetch all student data
     students = Student.objects.all()
     # serialize data
@@ -124,9 +126,10 @@ def student(request):
 @api_view(['GET'])
 def student_with_email(request):
     # fetch student data
-    authorized,request = auth(request, 'STUDENT')
+    authorized,request = auth(request,'STUDENT')
     if not authorized : 
         return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
         student = Student.objects.get(email=request.tokenData['email'])
         # serialize data
@@ -138,13 +141,14 @@ def student_with_email(request):
 
 @api_view(['POST'])
 def mark_attendance(request):
-    authorized,request = auth(request, 'STUDENT')
+    authorized,request = auth(request,'STUDENT')
     if not authorized : 
-        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+      return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+   
     #  coursecode, teachercode, room code, batch code from request.tokenData
     data = request.data
     # check if data is valid
-    if data['coursecode'] == '' or data['teachercode'] == '':
+    if data['coursecode'] == '' or data['teachercode'] == '' or data['classRoom'] == '':
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
     # check if course exists
     if not Course.objects.filter(code=data['coursecode']).exists():
@@ -155,28 +159,31 @@ def mark_attendance(request):
     try:
         # check if faculty code is active
         facultyCodeStatus = FacultyCodeStatus.objects.get(faculty=Faculty.objects.get(code=data['teachercode']))
+        if facultyCodeStatus.status == False:
+            return Response({'message': 'Faculty Code is not active. You cannot mark your attendance'}, status=status.HTTP_401_UNAUTHORIZED)
     except:
         return Response({'message': 'Faculty Code is not active'}, status=status.HTTP_401_UNAUTHORIZED)
     # check if QR room code is present
     if not QRCodeTable.objects.filter(classRoom=data['classRoom']).exists():
         return Response({'message': 'QR Code Not Found'}, status=status.HTTP_404_NOT_FOUND)
-    
+    if facultyCodeStatus.classRoom != data['classRoom']:
+        return Response({'message': 'Invalid ClassRoom Entered'}, status=status.HTTP_400_BAD_REQUEST)
     # make unique code 
-    uniqueCode = data['coursecode']+';'+data['teachercode']+';'+request.tokenData['batch'].code+";"+data['classRoom']
+    # uniqueCode = data['coursecode']+';'+data['teachercode']+';'+request.tokenData['batch'].code+";"+data['classRoom']
 
-    # check if unique code exists
-    if not Codes.objects.filter(uniqueCode=uniqueCode).exists():
-        return Response({'message': 'Invalid Code'}, status=status.HTTP_401_UNAUTHORIZED)
+    # # check if unique code exists
+    # if not Codes.objects.filter(uniqueCode=uniqueCode).exists():
+    #     return Response({'message': 'Invalid Code'}, status=status.HTTP_401_UNAUTHORIZED)
     try:
         # get BatchCourseFaculty Object
         batchCourseFaculty = BatchCourseFaculty.objects.get(batch=request.tokenData['batch'], course=Course.objects.get(code=data['coursecode']), faculty=Faculty.objects.get(code=data['teachercode']))
-    except:
-        return Response({'message': 'Invalid Code'}, status=status.HTTP_401_UNAUTHORIZED)
+    except Exception as e:
+        return Response({'message': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
     # check if attendance is already marked
-    if Attendance.objects.filter(batchCourseFaculty=batchCourseFaculty, roll=Student.objects.get(email=request.tokenData['email']).roll, date=datetime.today()).exists():
+    if Attendance.objects.filter(BCF_id=batchCourseFaculty, roll=Student.objects.get(email=request.tokenData['email']), date=datetime.today()).exists():
         return Response({'message': 'Attendance already marked'}, status=status.HTTP_401_UNAUTHORIZED)
     # create new attendance object
-    attendance = Attendance(batchCourseFaculty=batchCourseFaculty, roll=Student.objects.get(email=request.tokenData['email']).roll, date=datetime.today(), classRoom=data['classRoom'])
+    attendance = Attendance(BCF_id=batchCourseFaculty, roll=Student.objects.get(email=request.tokenData['email']), date=datetime.today(), classRoom=QRCodeTable.objects.get(classRoom=data['classRoom']))
     # save attendance object
     attendance.save()
     # return response
@@ -184,9 +191,10 @@ def mark_attendance(request):
 
 @api_view(['GET'])
 def get_student_attendance(request):
-    authorized,request = auth(request, 'STUDENT')
+    authorized,request = auth(request,'STUDENT')
     if not authorized : 
         return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
         # get student by email
         student = Student.objects.get(email=request.tokenData['email'])
@@ -301,9 +309,10 @@ def forgot_password(request):
 # TODO: Once tested, remove the route and make it an internal function which will be used in the mark_attendance
 @api_view(['POST'])
 def face_verification(request):
-    authorized,request = auth(request, 'STUDENT')
+    authorized,request = auth(request,'STUDENT')
     if not authorized : 
         return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
         # get student by email
         student = Student.objects.get(email=request.tokenData['email'])
@@ -325,24 +334,28 @@ def face_verification(request):
     
 @api_view(['GET'])
 def course(request):
-    request = auth(request, 'STUDENT')
+    authorized,request = auth(request,'STUDENT')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
         # get student by email
         student = Student.objects.get(email=request.tokenData['email'])
     except:
         return Response({'message': 'Student Not Found'}, status=status.HTTP_400_BAD_REQUEST)
     
-    batch = student.batch_id
+    batch = student.batch
     
     # get all the courses
-    bcfObjs = BatchCourseFaculty.objects.filter(batch=Batch.objects.get(id=batch))
+    bcfObjs = BatchCourseFaculty.objects.filter(batch=batch)
     course_faculty_array = []
     for fcb in bcfObjs:
         try:
             faculty = Faculty.objects.get(code=fcb.faculty.code)
+            course = Course.objects.get(code=fcb.course.code)
         except:
             return Response({'message':'Faculty or Course Not Found'}, status=status.HTTP_400_BAD_REQUEST)
-        serializedFaculty = FacultySerializer(batch).data
+        serializedFaculty = FacultySerializer(faculty).data
         serializedCourse = CourseSerializer(course).data
         course_faculty_array.append({'course':serializedCourse,'faculty':serializedFaculty})
     return Response({'message': 'Student Courses', 'data': course_faculty_array}, status=status.HTTP_200_OK)        

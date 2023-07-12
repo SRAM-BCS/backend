@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.db.models import Count, F, FloatField
-from backend.models import Faculty,FacultyCodeStatus, OTPModel, BatchCourseFaculty, Course,  Batch, Attendance
+from backend.models import Faculty,FacultyCodeStatus, OTPModel, BatchCourseFaculty, Course,  Batch, Attendance, QRCodeTable
 from backend.serializers import StudentSerializer, BatchCourseFacultySerializer, BatchSerializer, CourseSerializer
 from backend.views import generate_otp
 from SRAM.middleware import auth
@@ -20,12 +20,19 @@ import pytz
 
 @api_view(['POST'])
 def facultyCode(request):
-   request = auth(request)
+   authorized,request = auth(request,'FACULTY')
+   if not authorized : 
+      return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
    data = request.data
    if data["facultyCode"]=='':
       return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+   if data["classRoom"]:
+      try:
+         classRoom = QRCodeTable.objects.get(classRoom=data["classRoom"])
+      except Exception as e:
+         return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
    codeStatus = ToggleCodeStatus(data["facultyCode"],data["classRoom"])
-   return Response({'message': 'codeStatus changed to '+codeStatus.status}, status=status.HTTP_200_OK)
+   return Response({'message': "codeStatus changed"}, status=status.HTTP_200_OK)
    
 @api_view(['PUT'])
 def forgotPassword(request):
@@ -72,26 +79,29 @@ def login(request):
    payload = {
       'email': faculty.email,
       'name': faculty.name,
-      'exp': datetime.utcnow() + timedelta(days=1),
-      'iat': datetime.utcnow(),
-      'authorizationLevel':AUTHORIZATION_LEVELS['FACULTY']
+      'authorizationLevel':AUTHORIZATION_LEVELS['FACULTY'],
+      'isActive':faculty.isActive,
    }
    token = jwt.encode(payload, env("JWT_SECRET_KEY"), algorithm='HS256')
    return Response({'message':'Logged in Successfully', 'token': token}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def getFaculty(request):
-   request = auth(request, True)
+   authorized,request = auth(request,'FACULTY')
+   if not authorized : 
+      return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+   data = request.data
    try:
     faculty = Faculty.objects.get(email=request.tokenData['email'])
    except Exception as e: 
          print(str(e))
          return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
    courses = []
-   for course in faculty.courses:
+   bcfObjs = BatchCourseFaculty.objects.filter(faculty=faculty)
+   for bcf in bcfObjs:
       courses.append({
-         'name': course.name,
-         'code': course.code,
+         'name': bcf.course.name,
+         'code': bcf.course.code,
       })
    return Response({
       'name': faculty.name,
@@ -112,7 +122,8 @@ def AutoFalseCodeStatus(facultyCode, classRoom=""):
          print(str(e))
          return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
    codeStatus.status = False
-   codeStatus.classRoom = classRoom
+   if classRoom is not "":
+      codeStatus.classRoom = classRoom
    codeStatus.save()
    return codeStatus  
 
@@ -120,18 +131,20 @@ def ToggleCodeStatus(facultyCode,classRoom=""): #Helper Function to Toggle code 
    try:   
       codeStatus = FacultyCodeStatus.objects.get(faculty=Faculty.objects.get(code=facultyCode))
    except Exception as e: 
-         print(str(e))
-         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+      codeStatus = FacultyCodeStatus(faculty=Faculty.objects.get(code=facultyCode))
    codeStatus.status = not codeStatus.status
-   codeStatus.classRoom = classRoom
-   if codeStatus.status:
-      AutoFalseCodeStatus.apply_async(args=[facultyCode,classRoom],eta=datetime.now()+timedelta(minutes=10))
+   if(classRoom is not ""):      
+      codeStatus.classRoom = classRoom
+   # if codeStatus.status:
+   #    AutoFalseCodeStatus.apply_async(args=[facultyCode,classRoom],eta=datetime.now()+timedelta(minutes=10))
    codeStatus.save()
    return codeStatus 
  
 @api_view(['POST','GET'])
 def facultyBatchCourse(request):
-   request = auth(request,'FACULTY')
+   authorized,request = auth(request,'FACULTY')
+   if not authorized : 
+      return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
    if request.method == 'POST':
       data = request.data
    #data={"email","batchCode","courseCode"}
@@ -141,7 +154,7 @@ def facultyBatchCourse(request):
          course = Course.objects.get(code=data['courseCode'])
       except Exception as e: 
          print(str(e))
-         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
+         return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
       bcfObj= BatchCourseFaculty(batch=batch,course=course,faculty=faculty)
       bcfObj.save()
    # serialize = BatchCourseFacultySerializer(bcfObj)
@@ -173,7 +186,10 @@ def facultyBatchCourse(request):
 
 @api_view(['POST'])
 def facultyBatchCourseAttendance(request):
-   request = auth(request,'FACULTY')
+   authorized,request = auth(request,'FACULTY')
+   if not authorized : 
+      return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+   
    if request.method == 'POST':
       data = request.data
       print(data)
