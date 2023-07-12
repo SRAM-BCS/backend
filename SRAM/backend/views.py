@@ -37,8 +37,13 @@ def register(request):
     # check if roll number already exists
     if Student.objects.filter(roll=data['roll']).exists():
         return Response({'message': 'Roll Number already exists'}, status=status.HTTP_400_BAD_REQUEST)
+    # get batch from batch number
+    try:
+        batch = Batch.objects.get(code=data['batch'])
+    except:
+        return Response({'message': 'Invalid Batch'}, status=status.HTTP_400_BAD_REQUEST)
     # create new student object
-    student = Student(name=data['name'], email=data['email'], roll=data['roll'], password=data['password'], salt = bcrypt.gensalt(), batch=data['batch'])
+    student = Student(name=data['name'], email=data['email'], roll=data['roll'], password=data['password'], batch=batch)
     # set password
     student.setPassword(data['password'], bcrypt.gensalt())
     # get profileImage
@@ -255,10 +260,10 @@ def verify_otp(request):
         # check if otp is correct
         if otpModel.otp != int(otp):
             return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
-        if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
-            # generate new otp and send email then return
-            generate_otp(request)
-            return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
+        # if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
+        #     # generate new otp and send email then return
+        #     generate_otp(request)
+        #     return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
         # create Verified Email Instance
         verifiedEmail = VerifiedEmails(email=email)
         verifiedEmail.save()

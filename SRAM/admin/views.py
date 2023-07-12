@@ -70,7 +70,9 @@ def save_student_status(request):
 
 @api_view(['POST'])
 def save_new_admin(request):
-    request = auth(request, 'ADMIN')
+    authorized,request = auth(request, 'ADMIN')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
     print(request)
     data = request.data
     if data["email"]=='':
@@ -133,7 +135,9 @@ def QR(request):
 @api_view(['POST','GET'])
 def batch(request):
     if request.method == "POST":
-        request = auth(request, 'ADMIN')
+        authorized,request = auth(request, 'ADMIN')
+        if not authorized : 
+            return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         if data["title"]=='' or data["code"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -152,7 +156,7 @@ def batch(request):
 @api_view(['POST','GET'])
 def course(request): 
     if request.method == "POST":
-        authorized,request = auth(request,'ADMIN')
+        authorized,request = auth(request, 'ADMIN')
         if not authorized : 
             return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
@@ -224,7 +228,9 @@ def get_all_admins(request):
 @api_view(['POST','GET'])
 def faculty(request):
     if request.method == 'POST':
-        authorized,request = auth(request,'ADMIN')
+        authorized,request = auth(request, 'ADMIN')
+        if not authorized : 
+            return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         if not authorized : 
             return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
