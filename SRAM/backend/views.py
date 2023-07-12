@@ -85,6 +85,11 @@ def login(request):
         # check if student is active
         if not student.isActive:
             return Response({'message': 'Account is not active'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if student.requestStatus != 1:
+            msg = 'Your Account is Pending for Approval' if (student.requestStatus) else 'Your Account is Rejected'
+            return Response({'message': msg}, status=status.HTTP_401_UNAUTHORIZED)
+
     except:
         return Response({'message': 'Not Found. Please Contact Your Admin.'}, status=status.HTTP_400_BAD_REQUEST)
     # use serializer

@@ -201,10 +201,11 @@ def facultyBatchCourseAttendance(request):
          print(str(e))
          return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
       bcfObj= BatchCourseFaculty.objects.get(batch=batch,course=course,faculty=faculty)
+      attReport = get_attendance_report_by_date(course,batch)
       # attendanceObj = Attendance.objects.get(batchCourseFaculty=bcfObj)
       # attendanceObj.attendance = data['attendance']
       # attendanceObj.save()
-      return Response({'message':'Attendance Updated'}, status=status.HTTP_200_OK)
+      return Response({'message':'Attendance Updated',"data":attReport}, status=status.HTTP_200_OK)
    else:
       return Response({'message':'Invalid Request'}, status=status.HTTP_400_BAD_REQUEST)   
    
@@ -219,14 +220,15 @@ def get_attendance_report_by_date(course, batch): #course and batch objects
 # Loop through the attendance records
    for attendance in attendance_report:
       date = attendance.date
-
+      date_str = date.strftime("%d-%b-%Y") 
+      attObj ={'bcf':attendance.BCF_id.id, 'roll_number':attendance.roll.roll}
     # Check if the date is already a key in the dictionary
-      if date in attendance_by_date:
+      if date_str in attendance_by_date:
         # Append the attendance record to the existing array
-         attendance_by_date[date].append(attendance)
+         attendance_by_date[date_str].append(attObj)
       else:
         # Create a new array with the attendance record
-        attendance_by_date[date] = [attendance]
+        attendance_by_date[date_str] = [attObj]
 
    return attendance_by_date  
 
