@@ -26,7 +26,9 @@ from SRAM.utils import send_email
 # Create your views here.
 @api_view(['GET'])
 def pending_student_status(request):
-    request = auth(request, 'ADMIN')
+    authorized,request = auth(request, 'ADMIN')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
 
     limit = request.query_params.get('limit', None)
     offset = request.query_params.get('skip', None)
@@ -46,7 +48,9 @@ def pending_student_status(request):
 
 @api_view(['POST'])
 def save_student_status(request):
-    request = auth(request,'ADMIN')
+    authorized,request = auth(request, 'ADMIN')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
     data = request.data
     
     if data['roll'] == '' or data['statusNum'] == '':
@@ -62,7 +66,9 @@ def save_student_status(request):
 
 @api_view(['POST'])
 def save_new_admin(request):
-    request = auth(request, 'ADMIN')
+    authorized,request = auth(request, 'ADMIN')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
     print(request)
     data = request.data
     if data["email"]=='':
@@ -88,7 +94,9 @@ def save_new_admin(request):
 @api_view(['POST','GET'])
 def QR(request):
     if(request.method=='POST'):
-        request = auth(request, 'ADMIN')
+        authorized,request = auth(request, 'ADMIN')
+        if not authorized : 
+            return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         if(data["classRoom"]==''):
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -122,7 +130,9 @@ def QR(request):
 @api_view(['POST','GET'])
 def batch(request):
     if request.method == "POST":
-        request = auth(request, 'ADMIN')
+        authorized,request = auth(request, 'ADMIN')
+        if not authorized : 
+            return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         if data["title"]=='' or data["code"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -141,7 +151,9 @@ def batch(request):
 @api_view(['POST','GET'])
 def course(request): 
     if request.method == "POST":
-        request = auth(request,'ADMIN')
+        authorized,request = auth(request, 'ADMIN')
+        if not authorized : 
+            return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         if data["name"]=='' or data["code"]=='':
             return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -211,7 +223,9 @@ def get_all_admins(request):
 @api_view(['POST','GET'])
 def faculty(request):
     if request.method == 'POST':
-        authorized,request = auth(request, AUTHORIZATION_LEVELS['ADMIN'])
+        authorized,request = auth(request, 'ADMIN')
+        if not authorized : 
+            return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         if not authorized : 
             return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data

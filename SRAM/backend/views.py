@@ -37,8 +37,13 @@ def register(request):
     # check if roll number already exists
     if Student.objects.filter(roll=data['roll']).exists():
         return Response({'message': 'Roll Number already exists'}, status=status.HTTP_400_BAD_REQUEST)
+    # get batch from batch number
+    try:
+        batch = Batch.objects.get(code=data['batch'])
+    except:
+        return Response({'message': 'Invalid Batch'}, status=status.HTTP_400_BAD_REQUEST)
     # create new student object
-    student = Student(name=data['name'], email=data['email'], roll=data['roll'], password=data['password'], salt = bcrypt.gensalt(), batch=data['batch'])
+    student = Student(name=data['name'], email=data['email'], roll=data['roll'], password=data['password'], batch=batch)
     # set password
     student.setPassword(data['password'], bcrypt.gensalt())
     # get profileImage
@@ -104,7 +109,9 @@ def login(request):
 
 @api_view(['GET'])
 def student(request):
-    request = auth(request, 'FACULTY')
+    authorized,request = auth(request, 'FACULTY')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
     # fetch all student data
     students = Student.objects.all()
     # serialize data
@@ -117,7 +124,9 @@ def student(request):
 @api_view(['GET'])
 def student_with_email(request):
     # fetch student data
-    request = auth(request, 'STUDENT')
+    authorized,request = auth(request, 'STUDENT')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
     try:
         student = Student.objects.get(email=request.tokenData['email'])
         # serialize data
@@ -129,7 +138,9 @@ def student_with_email(request):
 
 @api_view(['POST'])
 def mark_attendance(request):
-    request = auth(request, 'STUDENT')
+    authorized,request = auth(request, 'STUDENT')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
     #  coursecode, teachercode, room code, batch code from request.tokenData
     data = request.data
     # check if data is valid
@@ -173,7 +184,9 @@ def mark_attendance(request):
 
 @api_view(['GET'])
 def get_student_attendance(request):
-    request = auth(request, 'STUDENT')
+    authorized,request = auth(request, 'STUDENT')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
     try:
         # get student by email
         student = Student.objects.get(email=request.tokenData['email'])
@@ -234,10 +247,10 @@ def verify_otp(request):
         # check if otp is correct
         if otpModel.otp != int(otp):
             return Response({'message': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
-        if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
-            # generate new otp and send email then return
-            generate_otp(request)
-            return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
+        # if otpModel.expiry.replace(tzinfo=pytz.utc) < datetime.now().replace(tzinfo=pytz.utc):
+        #     # generate new otp and send email then return
+        #     generate_otp(request)
+        #     return Response({'message': 'OTP Expired, New OTP Has Been Sent To Email'}, status=status.HTTP_401_UNAUTHORIZED)
         # create Verified Email Instance
         verifiedEmail = VerifiedEmails(email=email)
         verifiedEmail.save()
@@ -288,7 +301,9 @@ def forgot_password(request):
 # TODO: Once tested, remove the route and make it an internal function which will be used in the mark_attendance
 @api_view(['POST'])
 def face_verification(request):
-    request = auth(request, 'STUDENT')
+    authorized,request = auth(request, 'STUDENT')
+    if not authorized : 
+        return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
     try:
         # get student by email
         student = Student.objects.get(email=request.tokenData['email'])

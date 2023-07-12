@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sram-backend-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sram-backend-app
+  template:
+    metadata:
+      labels:
+        app: sram-backend-app
+    spec:
+      containers:
+        - name: sram-backend-app
+          image: sram-backend-app
+          ports:
+            - containerPort: 8000
