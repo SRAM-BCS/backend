@@ -42,7 +42,7 @@ steps:
     args:
       - "run"
       - "deploy"
-      - "flask-server"
+      - "sram-backend"
       - "--image"
       - "us-central1-docker.pkg.dev/sram-392317/sram-docker-repo/sram-backend:$SHORT_SHA"
       - "--region"
