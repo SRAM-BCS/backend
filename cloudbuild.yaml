@@ -31,7 +31,7 @@ steps:
       - "-c"
       - >
         gcloud deploy releases create release-$BUILD_ID
-        --delivery-pipeline=sram-backend-app
+        --delivery-pipeline=sram-backend
         --region=us-central1
         --source=./
         --images=sram-backend=us-central1-docker.pkg.dev/sram-392317/sram-docker-repo/sram-backend:$SHORT_SHA
