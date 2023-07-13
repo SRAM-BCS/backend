@@ -80,7 +80,7 @@ def login(request):
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
     # check if student exists
     if not Student.objects.filter(email=data.email).exists():
-        return Response({'message': 'Not Found. Please Contact Your Admin.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'message': 'Not Found. Please Contact Admin.'}, status=status.HTTP_404_NOT_FOUND)
     try:
         # get student object
         student = Student.objects.get(email=data.email)
@@ -88,12 +88,13 @@ def login(request):
         if not student.checkPassword(data.password):
             return Response({'message': 'Incorrect Password'}, status=status.HTTP_401_UNAUTHORIZED)
         # check if student is active
+        if student.requestStatus != "1":
+            msg = 'Your Account is Pending for Approval' if (student.requestStatus == "2") else 'Your Account has been Rejected.Please Contact Admin'
+            return Response({'message': msg}, status=status.HTTP_401_UNAUTHORIZED)
+        
         if not student.isActive:
             return Response({'message': 'Account is not active'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        if student.requestStatus != 1:
-            msg = 'Your Account is Pending for Approval' if (student.requestStatus) else 'Your Account is Rejected'
-            return Response({'message': msg}, status=status.HTTP_401_UNAUTHORIZED)
 
     except:
         return Response({'message': 'Not Found. Please Contact Your Admin.'}, status=status.HTTP_400_BAD_REQUEST)

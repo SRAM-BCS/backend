@@ -122,7 +122,7 @@ def AutoFalseCodeStatus(facultyCode, classRoom=""):
          print(str(e))
          return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
    codeStatus.status = False
-   if classRoom is not "":
+   if classRoom != "":
       codeStatus.classRoom = classRoom
    codeStatus.save()
    return codeStatus  
@@ -133,7 +133,7 @@ def ToggleCodeStatus(facultyCode,classRoom=""): #Helper Function to Toggle code 
    except Exception as e: 
       codeStatus = FacultyCodeStatus(faculty=Faculty.objects.get(code=facultyCode))
    codeStatus.status = not codeStatus.status
-   if(classRoom is not ""):      
+   if(classRoom != ""):      
       codeStatus.classRoom = classRoom
    # if codeStatus.status:
    #    AutoFalseCodeStatus.apply_async(args=[facultyCode,classRoom],eta=datetime.now()+timedelta(minutes=10))
