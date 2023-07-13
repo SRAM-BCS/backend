@@ -26,30 +26,31 @@ steps:
         "us-central1-docker.pkg.dev/sram-392317/sram-docker-repo/sram-backend:$SHORT_SHA",
       ]
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    # entrypoint: "bash"
-    # args:
-    #   - "-c"
-    #   - >
-    #     gcloud deploy releases create release-$BUILD_ID
-    #     --delivery-pipeline=sram-backend
-    #     --region=us-central1
-    #     --source=./
-    #     --images=sram-backend=us-central1-docker.pkg.dev/sram-392317/sram-docker-repo/sram-backend:$SHORT_SHA
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - >
+        gcloud deploy releases create release-$BUILD_ID
+        --delivery-pipeline=sram-backend
+        --region=us-central1
+        --source=./
+        --images=sram-backend=us-central1-docker.pkg.dev/sram-392317/sram-docker-repo/sram-backend:$SHORT_SHA
 
   # Deploy the image to Cloud Run
-  - name: "gcr.io/cloud-builders/gcloud"
-    args:
-      - "run"
-      - "deploy"
-      - "flask-server"
-      - "--image"
-      - "us-central1-docker.pkg.dev/stunning-saga-386406/test-repo/flask-server:latest"
-      - "--region"
-      - "us-central1"
-      - "--platform"
-      - "managed"
-      - "--allow-unauthenticated"
-      - "--port"
-      - "5000"
-options:
-  logging: CLOUD_LOGGING_ONLY
+
+#   - name: "gcr.io/cloud-builders/gcloud"
+#     args:
+#       - "run"
+#       - "deploy"
+#       - "flask-server"
+#       - "--image"
+#       - "us-central1-docker.pkg.dev/stunning-saga-386406/test-repo/flask-server:latest"
+#       - "--region"
+#       - "us-central1"
+#       - "--platform"
+#       - "managed"
+#       - "--allow-unauthenticated"
+#       - "--port"
+#       - "5000"
+# options:
+#   logging: CLOUD_LOGGING_ONLY
