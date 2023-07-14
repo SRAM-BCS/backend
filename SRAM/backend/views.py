@@ -1,8 +1,10 @@
 from django.shortcuts import render
 from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus, OTPModel, VerifiedEmails, QRCodeTable
-from .serializers import StudentSerializer, BatchSerializer, CourseSerializer, FacultySerializer
-from rest_framework.decorators import api_view
+from .serializers import StudentSerializer, CourseSerializer, FacultySerializer
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
+from django.core.files.storage import default_storage
 from rest_framework import status
 from backend.schema import LoginRequest, RegisterRequest, ForgotPasswordRequest
 import bcrypt
@@ -17,7 +19,9 @@ from SRAM.middleware import auth
 from random import randint
 from SRAM.utils import send_email, verify_user, convert_image_to_base64
 import pytz
-
+from PIL import Image
+import urllib.request
+import os
 # Create your views here.
 @api_view(['POST'])
 def register(request):
@@ -72,6 +76,7 @@ def register(request):
     return Response({'message': 'Student Registered'}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
+
 def login(request):
     data = request.data
     data = LoginRequest(data['email'], data['password'])
@@ -122,11 +127,26 @@ def student(request):
 
     # fetch all student data
     students = Student.objects.all()
-    # serialize data
-    serializer = StudentSerializer(students, many=True)
+    data = []
+    for student in students:
+        student.profileImage = str(student.profileImage)
+        student.idImage = str(student.idImage)
+        student.password = None
+        data.append({
+            "name":student.name,
+            "email":student.email,
+            "roll":student.roll,
+            "batch":student.batch.code,
+            "profileImage":student.profileImage,
+            "idImage":student.idImage,
+            "isActive":student.isActive,
+            "requestStatus":student.requestStatus,
+            "createdAt":student.created,
+            "updatedAt":student.updated,           
+        })
     # return response   
     # return Response(serializer.data, status=status.HTTP_200_OK)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
@@ -138,10 +158,20 @@ def student_with_email(request):
 
     try:
         student = Student.objects.get(email=request.tokenData['email'])
-        # serialize data
-        serializer = StudentSerializer(student)
+        data = {
+            "name":student.name,
+            "email":student.email,
+            "roll":student.roll,
+            "batch":student.batch.code,
+            "profileImage":str(student.profileImage),
+            "idImage":str(student.idImage),
+            "isActive":student.isActive,
+            "requestStatus":student.requestStatus,
+            "createdAt":student.created,
+            "updatedAt":student.updated,
+        }
         # return response
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
     except Student.DoesNotExist:
         return Response({'message': 'Student Not Found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -274,7 +304,7 @@ def verify_otp(request):
 
 @api_view(['PUT'])
 def forgot_password(request):
-    data: ForgotPasswordRequest = request.data
+    data = request.data
     if not data.newPassword or not data.otp or not data.email:
         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
     # check email domain
@@ -325,15 +355,25 @@ def face_verification(request):
     except:
         return Response({'message': 'Student Not Found'}, status=status.HTTP_400_BAD_REQUEST)
     # get image
-    image = request.FILES['image']
+    image = request.data['image_file']
+    # save image as file
+    if image:
+        upload_file_path= f'./sent_{student.roll}.{image.name.split(".")[-1]}'
+        saved_file = default_storage.save(upload_file_path, image)
+    # verify image
     # get profile image from student
     profileImage = student.profileImage
+    print(profileImage)
     # check if profile image exists
     if not profileImage:
         return Response({'message': 'Profile Image Not Found'}, status=status.HTTP_404_NOT_FOUND)
-    encoded_image = convert_image_to_base64(image.read())
-    data = verify_user(img1=encoded_image, img2=profileImage)
+    profile_image_file_path = f'./profile_{student.roll}.{image.name.split(".")[-1]}'
+    # save profile image as file
+    urllib.request.urlretrieve(str(profileImage), profile_image_file_path)
+    data = verify_user(img1=upload_file_path, img2=profile_image_file_path)
     if data['verified']:
+        os.remove(upload_file_path)
+        os.remove(profile_image_file_path)
         return Response({'message': 'Verified', 'status':True}, status=status.HTTP_200_OK)
     else:
         return Response({'message': 'Not Verified', 'status':False}, status=status.HTTP_401_UNAUTHORIZED)

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import register, student, login, student_with_email, mark_attendance, get_student_attendance, generate_otp, verify_otp, forgot_password, course
+from .views import register, student, login, student_with_email, mark_attendance, get_student_attendance, generate_otp, verify_otp, forgot_password, course, face_verification
 urlpatterns = [
 	path('register/', register, name='register'),
     path('get/all/', student, name='student'),
@@ -11,4 +11,5 @@ urlpatterns = [
     path('otp/generate/', generate_otp, name='generate_otp'),
     path('otp/verify/', verify_otp, name='verify_otp'),
     path('forgot/password/', forgot_password, name='forgot_password'),
+    path('face/verification/', face_verification, name='face_verification'),
  ]

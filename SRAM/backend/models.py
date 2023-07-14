@@ -133,3 +133,10 @@ class Admin(models.Model):
         
     def checkPassword(self, password):
         return bcrypt.checkpw(password.encode('utf8'), self.password.encode('utf8'))  
+    
+def custom_image_name(instance, filename):
+    # Define the custom name for the image
+    custom_name = filename
+
+    # Return the complete file path
+    return f"{custom_name}"
