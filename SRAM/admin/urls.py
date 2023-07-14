@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import pending_student_status, save_student_status, save_new_admin, get_all_admins, QR, forgot_password, batch, course, faculty
+from .views import pending_student_status, save_student_status, save_new_admin, get_all_admins, QR, forgot_password, batch, course, faculty, admin_login
 
 urlpatterns = [
     path('new',save_new_admin,name="SaveNewAdmin"),
@@ -24,8 +24,10 @@ urlpatterns = [
     path('faculty/new', faculty, name='SaveNewFaculty'),
     path('faculty/all', faculty, name='GetAllFaculties'),
 
+    # ADMIN
     path('forgot/password', forgot_password, name='ForgotPassword'),
     path('get/', get_all_admins, name='GetAllAdmins'),
+    path('login/', admin_login, name='AdminLogin'),
     # #CLASSROOM
     # path("classroom/new", classroom, name="SaveNewClassroom"),
  ]
