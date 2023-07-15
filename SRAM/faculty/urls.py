@@ -6,6 +6,6 @@ urlpatterns = [
     path('login', login, name='login'),
     path('get', getFaculty, name='getFaculty'),
     path('batch/course',facultyBatchCourse,name="associateBatchCourse"),
-    path('batch/course/attendance',facultyBatchCourseAttendance,name="getBatchCourseAttendance"),
+    path('batch/course/attendance',facultyBatchCourseAttendance,name="getBatchCourseAttendance"),#Attendance Stats
  
  ]
