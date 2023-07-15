@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.db.models import Count, F, FloatField
+from django.db.models import Count, F,ExpressionWrapper, FloatField
 from backend.models import Faculty,FacultyCodeStatus, OTPModel, BatchCourseFaculty, Course,  Batch, Attendance, QRCodeTable
 from backend.serializers import StudentSerializer, BatchCourseFacultySerializer, BatchSerializer, CourseSerializer
 from backend.views import generate_otp
@@ -194,18 +194,18 @@ def facultyBatchCourseAttendance(request):
       data = request.data
       print(data)
       try:   
-         faculty = Faculty.objects.get(email=data['email'].lower())
+         # faculty = Faculty.objects.get(email=data['email'].lower())
          batch = Batch.objects.get(code=data['batchCode'])
          course = Course.objects.get(code=data['courseCode'])
       except Exception as e: 
          print(str(e))
-         return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
-      bcfObj= BatchCourseFaculty.objects.get(batch=batch,course=course,faculty=faculty)
-      attReport = get_attendance_report_by_date(course,batch)
+         return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+      attendanceStats = attendanceStatistics(course,batch)
+      attendanceDayWise = get_attendance_report_by_date(course,batch)
       # attendanceObj = Attendance.objects.get(batchCourseFaculty=bcfObj)
       # attendanceObj.attendance = data['attendance']
       # attendanceObj.save()
-      return Response({'message':'Attendance Updated',"data":attReport}, status=status.HTTP_200_OK)
+      return Response({'message':'Attendance Details',"data":{"attendanceStats":attendanceStats,"attendanceDayWise":attendanceDayWise}}, status=status.HTTP_200_OK)
    else:
       return Response({'message':'Invalid Request'}, status=status.HTTP_400_BAD_REQUEST)   
    
@@ -216,12 +216,11 @@ def get_attendance_report_by_date(course, batch): #course and batch objects
         BCF_id__batch=batch
     ).order_by('date', 'roll__roll')
    attendance_by_date = {}
-
 # Loop through the attendance records
    for attendance in attendance_report:
       date = attendance.date
       date_str = date.strftime("%d-%b-%Y") 
-      attObj ={'bcf':attendance.BCF_id.id, 'roll_number':attendance.roll.roll}
+      attObj =attendance.roll.roll
     # Check if the date is already a key in the dictionary
       if date_str in attendance_by_date:
         # Append the attendance record to the existing array
@@ -233,15 +232,19 @@ def get_attendance_report_by_date(course, batch): #course and batch objects
    return attendance_by_date  
 
 def attendanceStatistics(course,batch): #In terms of percentage
+    tot = Attendance.objects.filter(BCF_id__batch=batch,BCF_id__course=course).values('date').distinct().count()
     attendance_report = Attendance.objects.filter(
         BCF_id__course=course,
         BCF_id__batch=batch
     ).values('roll__roll').annotate(
-        total_attendance=Count('id'),
-        total_classes=Count('date', distinct=True),
-        attendance_percentage=F('total_attendance') * 100.0 / F('total_classes'),
-    ).order_by('roll__roll')
-
+        total_attendance = Count('id'),
+        ).order_by('roll__roll')
+    for record in attendance_report:
+      total_attendance = record['total_attendance']
+      total_classes = tot
+      record['total_classes'] = total_classes
+      attendance_percentage = round((total_attendance * 100.0) / total_classes if total_classes != 0 else 0,2)
+      record['attendance_percentage'] = attendance_percentage
     return attendance_report
  
    
