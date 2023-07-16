@@ -4,6 +4,7 @@ from backend.models import Faculty,FacultyCodeStatus, OTPModel, BatchCourseFacul
 from backend.serializers import StudentSerializer, BatchCourseFacultySerializer, BatchSerializer, CourseSerializer
 from backend.views import generate_otp
 from SRAM.middleware import auth
+from SRAM.utils import convert_json_to_pdf_and_upload
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -202,9 +203,7 @@ def facultyBatchCourseAttendance(request):
          return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
       attendanceStats = attendanceStatistics(course,batch)
       attendanceDayWise = get_attendance_report_by_date(course,batch)
-      # attendanceObj = Attendance.objects.get(batchCourseFaculty=bcfObj)
-      # attendanceObj.attendance = data['attendance']
-      # attendanceObj.save()
+      # uploaded_url = convert_json_to_pdf_and_upload(attendanceStats)
       return Response({'message':'Attendance Details',"data":{"attendanceStats":attendanceStats,"attendanceDayWise":attendanceDayWise}}, status=status.HTTP_200_OK)
    else:
       return Response({'message':'Invalid Request'}, status=status.HTTP_400_BAD_REQUEST)   
@@ -247,4 +246,11 @@ def attendanceStatistics(course,batch): #In terms of percentage
       record['attendance_percentage'] = attendance_percentage
     return attendance_report
  
-   
+ 
+@api_view(['POST'])
+def getAttendanceStatsPDF(request):
+   authorized,request = auth(request,'FACULTY')
+   if not authorized : 
+      return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+      
+ 
