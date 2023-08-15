@@ -1,4 +1,7 @@
 from django.shortcuts import render
+from datetime import datetime
+from django.db.models import Count, OuterRef, Subquery, DateField
+from django.utils import timezone
 from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus, OTPModel, VerifiedEmails, QRCodeTable
 from .serializers import StudentSerializer, CourseSerializer, FacultySerializer
 from rest_framework.decorators import api_view, parser_classes
@@ -234,24 +237,15 @@ def get_student_attendance(request):
     try:
         # get student by email
         student = Student.objects.get(email=request.tokenData['email'])
-        # get all attendance of student
-        attendance = Attendance.objects.filter(roll=student.roll).get()
-        # get BATCHFACULTYCOURSE object
-        batchCourseFaculty = BatchCourseFaculty.objects.get(id=attendance.BCF_id)
-    except:
-        return Response({'message': 'Attendance Not Found'}, status=status.HTTP_400_BAD_REQUEST)
-    # data
-    data = {
-        "roll": attendance.roll,
-        "batch": batchCourseFaculty.batch.title,
-        "course": batchCourseFaculty.course.name,
-        "faculty": batchCourseFaculty.faculty.name,
-        "date":attendance.date,
-        "name": student.name,
-        "email":student.email
-    }
-    # return response
-    return Response(data, status=status.HTTP_200_OK)
+        batch = student.batch
+        course = Course.objects.get(code=request.query_params.get('course', None))
+        faculty = Faculty.objects.get(code=request.query_params.get('faculty', None))
+        dateWise_attendance_stats = get_presence_for_roll(batch, course, faculty, student.roll)
+        return Response({'data':dateWise_attendance_stats}, status=status.HTTP_200_OK)
+        #get all days 
+    except Exception as e:
+        print(e)
+        return Response({'message': 'Attendance Not Found',"error":e}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -407,3 +401,33 @@ def course(request):
     return Response({'message': 'Student Courses', 'data': course_faculty_array}, status=status.HTTP_200_OK)        
 
 
+def get_presence_for_roll(batch, course, faculty, roll_number):
+    unique_dates = Attendance.objects.filter(
+        BCF_id__batch=batch,
+        BCF_id__course=course,
+        BCF_id__faculty=faculty
+    ).values('date').distinct()
+
+    attendance_subquery = Attendance.objects.filter(
+        BCF_id__batch=batch,
+        BCF_id__course=course,
+        BCF_id__faculty=faculty,
+        roll__roll=roll_number,
+        date=OuterRef('date')
+    ).values('date').annotate(present=Count('id'))
+
+    unique_dates_with_present = unique_dates.annotate(
+        present=Subquery(attendance_subquery.values('present'))
+    )
+
+    output = []
+    present=0
+    tot=0
+    for entry in unique_dates_with_present:
+        tot+=1
+        formatted_date = entry['date'].strftime('%d-%b-%Y')
+        output.append({'date': formatted_date, 'present': entry['present']})
+        if entry['present']==1:
+            present+=1
+    attendance_percentage=round((present * 100.0) / tot if tot != 0 else 0,2)        
+    return {"attendance":output,"present":present,"total classes":tot,"attendance percentage":attendance_percentage}
