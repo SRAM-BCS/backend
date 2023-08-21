@@ -240,7 +240,7 @@ def attendanceStatistics(course,batch): #In terms of percentage
         ).order_by('roll__roll')
     for record in attendance_report:
       total_attendance = record['total_attendance']
-      record['total_classes'] = total_classes
+      record['total_classes'] = tot
       attendance_percentage = round((total_attendance * 100.0) / tot if tot != 0 else 0,2)
       record['attendance_percentage'] = attendance_percentage
     return attendance_report
