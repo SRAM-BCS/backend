@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import facultyCode, forgotPassword, login, getFaculty, facultyBatchCourse, facultyBatchCourseAttendance
+from .views import facultyCode, forgotPassword,QRAll, login, getFaculty, facultyBatchCourse, facultyBatchCourseAttendance
 urlpatterns = [
     path('code/status', facultyCode, name='facultyCode'),
     path('forgot/password', forgotPassword, name='forgotPassword'),
@@ -7,5 +7,5 @@ urlpatterns = [
     path('get', getFaculty, name='getFaculty'),
     path('batch/course',facultyBatchCourse,name="associateBatchCourse"),
     path('batch/course/attendance',facultyBatchCourseAttendance,name="getBatchCourseAttendance"),#Attendance Stats
- 
+    path('qr/all', QRAll, name='getAllQRs'),
  ]

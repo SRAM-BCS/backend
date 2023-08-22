@@ -11,6 +11,7 @@ urlpatterns = [
     #QR
     path('qr/generate', QR, name='generateQR'),
     path('qr', QR, name='getClassQR'),
+
     
     #BATCH
     path('batch/new', batch, name='SaveNewBatch'),

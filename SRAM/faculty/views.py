@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.db.models import Count, F,ExpressionWrapper, FloatField
 from backend.models import Faculty,FacultyCodeStatus, OTPModel, BatchCourseFaculty, Course,  Batch, Attendance, QRCodeTable
-from backend.serializers import StudentSerializer, BatchCourseFacultySerializer, BatchSerializer, CourseSerializer
+from backend.serializers import QRCodeSerializer, BatchCourseFacultySerializer, BatchSerializer, CourseSerializer
 from backend.views import generate_otp
 from SRAM.middleware import auth
 from SRAM.utils import convert_json_to_pdf_and_upload
@@ -150,12 +150,17 @@ def facultyBatchCourse(request):
       data = request.data
    #data={"email","batchCode","courseCode"}
       try:
-         faculty = Faculty.objects.get(email=data['email'].lower())
+         faculty = Faculty.objects.get(code=data['facultyCode'])
          batch = Batch.objects.get(code=data['batchCode'])
          course = Course.objects.get(code=data['courseCode'])
       except Exception as e: 
          print(str(e))
          return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+      try:
+         bcfObj= BatchCourseFaculty.objects.get(batch=batch,course=course,faculty=faculty)
+         return Response({'message': 'Batch, Course and Faculty Already Exists'}, status=status.HTTP_400_BAD_REQUEST)
+      except Exception as e:
+         print("")
       bcfObj= BatchCourseFaculty(batch=batch,course=course,faculty=faculty)
       bcfObj.save()
    # serialize = BatchCourseFacultySerializer(bcfObj)
@@ -253,3 +258,15 @@ def getAttendanceStatsPDF(request):
       return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
       
  
+@api_view(['GET'])
+def QRAll(request):
+   authorized,request = auth(request, 'FACULTY')
+   if not authorized :
+      return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
+   try:    
+      allQR = QRCodeTable.objects.all().order_by('classRoom')
+      serializedData = QRCodeSerializer(allQR, many=True)
+      return Response({'message': 'All QR Codes','data':serializedData.data}, status=status.HTTP_200_OK)
+   except Exception as e:
+      print(str(e))
+      return Response({'message': 'Error Occured'}, status=status.HTTP_400_BAD_REQUEST)

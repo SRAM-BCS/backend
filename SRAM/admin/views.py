@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from backend.models import Student, Admin, QRCodeTable, Batch, Course, Faculty, Attendance, OTPModel
 from backend.views import generate_otp
-from backend.serializers import StudentSerializer, AttendanceSerializer, BatchSerializer, FacultySerializer, QRCodeSerializer
+from backend.serializers import StudentSerializer,CourseSerializer, AttendanceSerializer, BatchSerializer, FacultySerializer, QRCodeSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -130,7 +130,7 @@ def QR(request):
         return Response({'message': 'QR Genrated','data':qr}, status=status.HTTP_200_OK)
     
 
-# save_new_batch, get_all_batches, save_new_course, get_all_courses
+
 
 @api_view(['POST','GET'])
 def batch(request):
@@ -147,8 +147,9 @@ def batch(request):
         return Response({'message': 'New Batch Saved', 'data':serializer.data}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
         try:
-            batches = Batch.objects.all()
-            return Response({'message': 'All Batches','data':batches}, status=status.HTTP_200_OK)
+            batches = Batch.objects.all().order_by('title')
+            serializedData = BatchSerializer(batches, many=True)
+            return Response({'message': 'All Batches','data':serializedData.data}, status=status.HTTP_200_OK)
         except:
             return Response({'message': "No Batches Found"}, status=status.HTTP_400_BAD_REQUEST)
     return Response({'message': 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
@@ -167,8 +168,10 @@ def course(request):
         return Response({'message': 'New Course Saved'}, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
         try:
-            courses = Course.objects.all()
-            return Response({'message': 'All Courses','data':courses}, status=status.HTTP_200_OK)
+            courses = Course.objects.all().order_by('name')
+            serializedData = CourseSerializer(courses, many=True)
+            print(serializedData.data)
+            return Response({'message': 'All Courses','data':serializedData.data}, status=status.HTTP_200_OK)
         except:
             return Response({'message': "No Courses Found"}, status=status.HTTP_400_BAD_REQUEST)
         
