@@ -1,5 +1,4 @@
 from django.shortcuts import render
-from datetime import datetime
 from django.db.models import Count, OuterRef, Subquery, DateField
 from django.utils import timezone
 from .models import Student, Course, Batch, BatchCourseFaculty, Faculty, Attendance, Codes, FacultyCodeStatus, OTPModel, VerifiedEmails, QRCodeTable
@@ -11,7 +10,7 @@ from django.core.files.storage import default_storage
 from rest_framework import status
 from backend.schema import LoginRequest, RegisterRequest, ForgotPasswordRequest
 import bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,date
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
