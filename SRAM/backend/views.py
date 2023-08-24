@@ -429,4 +429,4 @@ def get_presence_for_roll(batch, course, faculty, roll_number):
         if entry['present']==1:
             present+=1
     attendance_percentage=round((present * 100.0) / tot if tot != 0 else 0,2)        
-    return {"attendance":output,"present":present,"total classes":tot,"attendance percentage":attendance_percentage}
+    return {"attendance":output,"present":present,"total_classes":tot,"attendance_percentage":attendance_percentage}
