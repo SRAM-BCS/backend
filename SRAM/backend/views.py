@@ -129,7 +129,7 @@ def student(request):
         return Response({'message': 'Authorization Error! You are not Authorized to Access this Information'}, status=status.HTTP_401_UNAUTHORIZED)
 
     # fetch all student data
-    students = Student.objects.all()
+    students = Student.objects.filter(requestStatus="1").order_by("roll")
     data = []
     for student in students:
         student.profileImage = str(student.profileImage)
